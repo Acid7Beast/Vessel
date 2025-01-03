@@ -1,0 +1,78 @@
+# Ignore build artifacts
+build/
+*.o
+*.obj
+*.so
+*.a
+*.lib
+*.dll
+*.dylib
+*.exe
+*.out
+*.pdb
+*.ilk
+*.idb
+
+# Ignore CMake generated files
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+Makefile
+build.ninja
+*.ninja_deps
+*.ninja_log
+compile_commands.json
+
+# Ignore IDE-specific files
+# Visual Studio
+*.sln
+*.vcxproj
+*.vcxproj.filters
+*.vcxproj.user
+*.user
+*.ipch
+*.opensdf
+*.tlog
+*.idb
+*.log
+*.sdf
+
+# CLion
+.idea/
+cmake-build-*/
+
+# OS-specific files
+# macOS
+.DS_Store
+*.AppleDouble
+*.LSOverride
+
+# Windows
+Thumbs.db
+desktop.ini
+
+# Python-related files (for build.py)
+*.pyc
+*.pyo
+__pycache__/
+
+# Ignore logs and temporary files
+*.log
+*.tmp
+*.swp
+*.bak
+
+# Ignore test results and coverage files
+*.gcno
+*.gcda
+*.gcov
+test-results/
+coverage/
+
+# Ignore packaged binaries
+*.tar.gz
+*.zip
+*.7z
+
+# Custom project-specific rules
+# Add other ignored files or directories here if necessary
