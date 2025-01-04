@@ -2,7 +2,6 @@
 #pragma once
 
 #include <algorithm>
-#include <unordered_map>
 
 #include "Tag.h"
 #include "Consumer.h"
@@ -11,30 +10,24 @@
 namespace Flow
 {
 	template<typename Tag>
-	class Container : public Consumer<Tag>, public Provider<Tag>
+	class Container final : public Consumer<Tag>, public Provider<Tag>
 	{
 		// Public nested types.
 	public:
 		using Units = TagSelector<Tag>::Units;
-		using Resource = TagSelector<Tag>::Resource;
-		using Pack = TagSelector<Tag>::Pack;
+		using ResourceId = TagSelector<Tag>::ResourceId;
+
+		static constexpr Units kZeroUnits = static_cast<Units>(0);
 
 		struct State
 		{
-			Units amount = static_cast<Units>(0);
-		};
-
-		struct Cache
-		{
-			Pack request;
-			Pack supply;
-			bool isDirty = true;
+			Units amount = kZeroUnits;
 		};
 
 		struct Properties
 		{
-			Units capacity;
-			Resource type;
+			Units capacity = kZeroUnits;
+			ResourceId resourceId;
 		};
 
 		// Life circle.
@@ -43,139 +36,83 @@ namespace Flow
 
 		// Public interface.
 	public:
-		// Deserialize state of this resource container for saving.
+		// Deserialize state of this resource container for a save.
 		inline void LoadState(const State& state);
 
-		// Serialize state of this resource container. 
+		// Serialize state of this resource container from a save. 
 		inline void SaveState(State& state) const;
 
-		// Reset state to default.
+		// Reset state of this resource container to default values.
 		inline void ResetState();
 
-		// Get container properties.
-		inline const Properties& GetProperties() const { return _properties; }
+		// Get capacity of this container.
+		inline Units GetCapacity() const { return mProperties.capacity; }
 
 		// Public virtual interface substitution.
 	public:
-		// Consumer::GetAvailableAmount
-		inline const Pack& GetRequestResources([[maybe_unused]] Tag = {}) const override;
+		// Consumer::GetConsumableId
+		inline ResourceId GetConsumableId(Tag tag = {}) const override { return mProperties.resourceId; }
 
-		// Provider::GetAvailableAmount
-		inline const Pack& GetAvailableResources([[maybe_unused]] Tag = {}) const override;
+		// Provider::GetProvidableId
+		inline ResourceId GetProvidableId(Tag tag = {}) const override { return mProperties.resourceId; }
+
+		// Consumer::GetRequestUnits
+		inline Units GetRequestUnits(Tag tag = {}) const override { return mProperties.capacity - mState.amount; }
+
+		// Provider::GetAvailableUnits
+		inline Units GetAvailableUnits(Tag tag = {}) const override { return mState.amount; }
 
 		// Private virtual interface substitution.
 	private:
 		// Consumer::SupplyResource
-		inline void IncreaseResource(Pack& resourceSupply, [[maybe_unused]] Tag = {}) override;
+		inline void IncreaseUnits(Units resourceSupply) override;
 
 		// Provider::ReduceResource
-		inline void ReduceResource(Pack& resourceRequest, [[maybe_unused]] Tag = {}) override;
-
-		// Inheritable interface.
-	protected:
-		// Make cache dirty.
-		inline void SetDirty();
-
-		// Private interface.
-	private:
-		// Try rebuild if the cache is dirty.
-		inline void RebuildCacheIfRequired() const;
+		inline void ReduceUnits(Units resourceRequest) override;
 
 		// Private state.
 	private:
-		State _state;
-
-		// Private cache.
-	private:
-		mutable Cache _cache;
+		State mState;
 
 		// Private properties.
 	private:
-		const Properties& _properties;
+		const Properties& mProperties;
 	};
 
 	template<typename Tag>
 	inline Container<Tag>::Container(const Properties& properties)
-		: _properties{ properties }
-		, _state{ _state.amount = properties.capacity }
+		: mProperties{ properties }
+		, mState{ mState.amount = properties.capacity }
 	{
 	}
 
 	template<typename Tag>
 	inline void Container<Tag>::LoadState(const State& state)
 	{
-		_state = state;
-
-		_cache.isDirty = true;
+		mState = state;
 	}
 
 	template<typename Tag>
 	inline void Container<Tag>::SaveState(State& state) const
 	{
-		state = _state;
+		state = mState;
 	}
 
 	template<typename Tag>
 	inline void Container<Tag>::ResetState()
 	{
-		_state = {};
+		mState = {};
 	}
 
 	template<typename Tag>
-	inline void Container<Tag>::RebuildCacheIfRequired() const
+	inline void Container<Tag>::IncreaseUnits(Units resourceSupply)
 	{
-		constexpr Units kZero = static_cast<Units>(0);
-
-		if (!_cache.isDirty)
-		{
-			return;
-		}
-
-		_cache.supply[_properties.type] = std::max(_state.amount, kZero);
-		_cache.request[_properties.type] = std::max(_properties.capacity - _state.amount, kZero);
-
-		_cache.isDirty = false;
+		mState.amount = std::min(mState.amount + resourceSupply, mProperties.capacity);
 	}
 
 	template<typename Tag>
-	inline const Container<Tag>::Pack& Container<Tag>::GetRequestResources(Tag) const
+	inline void Container<Tag>::ReduceUnits(Units resourceRequest)
 	{
-		RebuildCacheIfRequired();
-
-		return { _cache.request };
+		mState.amount = std::max(mState.amount - resourceRequest, kZeroUnits);
 	}
-
-
-	template<typename Tag>
-	inline const Container<Tag>::Pack& Container<Tag>::GetAvailableResources(Tag) const
-	{
-		RebuildCacheIfRequired();
-
-		return { _cache.supply };
-	}
-
-	template<typename Tag>
-	inline void Container<Tag>::IncreaseResource(Pack& resourceSupply, Tag)
-	{
-		_state.amount = std::min(_state.amount + resourceSupply[_properties.type], _properties.capacity);
-
-		_cache.isDirty = true;
-	}
-
-	template<typename Tag>
-	inline void Container<Tag>::ReduceResource(Pack& resourceRequest, Tag)
-	{
-		constexpr Units zero = static_cast<Units>(0);
-
-		_state.amount = std::max(_state.amount - resourceRequest[_properties.type], zero);
-
-		_cache.isDirty = true;
-	}
-
-	template<typename Tag>
-	inline void Container<Tag>::SetDirty()
-	{
-		_cache.isDirty = true;
-	}
-
 } // Flow

@@ -3,8 +3,6 @@
 
 #include "Flow.h"
 
-#include <unordered_map>
-
 namespace Flow
 {
 	template <typename Tag>
@@ -13,98 +11,72 @@ namespace Flow
 		// Public nested types.
 	public:
 		using Units = TagSelector<Tag>::Units;
-		using Resource = TagSelector<Tag>::Resource;
-		using Pack = TagSelector<Tag>::Pack;
+		using ResourceId = TagSelector<Tag>::ResourceId;
 
 		struct State
 		{
-			Units bandwidth;
-			float requestLimit;
+			Units buffer;
+			float bandwidth;
 			Consumer<Tag>& originConsumer;
-		};
-
-		struct Cache
-		{
-			Pack request;
-			bool isDirty = true;
 		};
 
 		// Life circle.
 	public:
-		inline ConsumeLimiter(Consumer<Tag>& originConsumer, Units bandwidth, float requestLimit = 1.f);
+		inline ConsumeLimiter(Consumer<Tag>& originConsumer, Units buffer, float bandwidth = 1.f);
 
 		// Public interface.
 	public:
-		// Change outcoming bandwith.
-		inline void ChangeBandwidth(Units newValue);
+		// Change exchange buffer.
+		inline void SetUnitsBuffer(Units newValue) { mState.buffer = newValue; }
 
-		// Temporary set request limit until resource will increased.
-		inline void PendRequestLimit(float newValue = 1.f);
+		// Set bandwidth for any cases.
+		inline void SetUnitsBandwidth(float newValue = 1.f) { mState.bandwidth = newValue; }
 
-		// Private virtual interface substitution.
-	private:
-		// Consumer::GetRequestResources
-		inline virtual const Pack& GetRequestResources([[maybe_unused]] Tag = {}) const override;
+		// Public virtual interface substitution.
+	public:
+		// Consumer::GetConsumableId
+		inline ResourceId GetConsumableId(Tag tag = {}) const { return mState.originConsumer.GetConsumableId(); }
 
-		// Consumer::IncreaseResource
-		inline virtual void IncreaseResource(Pack& resourceSupply, [[maybe_unused]] Tag = {}) override;
+		// Consumer::GetRequestUnits
+		inline Units GetRequestUnits(Tag tag = {}) const override;
+
+		// Consumer::IncreaseUnits
+		inline void IncreaseUnits(Units resourceRequest) override { Flow<Tag>::IncreaseUnits(mState.originConsumer, resourceRequest); }
 
 		// Private state.
 	private:
-		State _state;
-
-		// Private cache.
-	private:
-		mutable Cache _cache;
+		State mState;
 	};
 
 	template<typename Tag>
-	inline ConsumeLimiter<Tag>::ConsumeLimiter(Consumer<Tag>& originConsumer, Units bandwidth, float requestLimit)
+	inline ConsumeLimiter<Tag>::ConsumeLimiter(Consumer<Tag>& originConsumer, ConsumeLimiter::Units buffer, float bandwidth)
 		: Consumer<Tag>{}
-		, _state{ bandwidth, requestLimit, originConsumer }
+		, mState{ bandwidth, buffer, originConsumer }
 	{
 	}
 
 	template<typename Tag>
-	inline void ConsumeLimiter<Tag>::ChangeBandwidth(Units newValue)
+	inline ConsumeLimiter<Tag>::Units ConsumeLimiter<Tag>::GetRequestUnits(Tag tag) const
 	{
-		_state.bandwidth = newValue;
-		_cache.isDirty = true;
+		const Units possibleUnits = static_cast<Units>(mState.buffer * mState.bandwidth);
+		const Units availableUnits = mState.originConsumer.GetRequestUnits();
+
+		return std::min(availableUnits, possibleUnits);
 	}
 
 	template<typename Tag>
-	inline void ConsumeLimiter<Tag>::PendRequestLimit(float newValue)
+	Provider<Tag>& operator>>(Provider<Tag>& provider, ConsumeLimiter<Tag>&& consumer)
 	{
-		_state.requestLimit = newValue;
-		_cache.isDirty = true;
+		Flow<Tag>::Exchange(provider, consumer);
+
+		return provider;
 	}
 
-	template <typename Tag>
-	inline const ConsumeLimiter<Tag>::Pack& ConsumeLimiter<Tag>::GetRequestResources(Tag tag) const
+	template<typename Tag>
+	Consumer<Tag>& operator<<(ConsumeLimiter<Tag>&& consumer, Provider<Tag>& provider)
 	{
-		if (_cache.isDirty)
-		{
-			_cache.request = _state.originConsumer.GetRequestResources();
-			Units totalLimit = _state.bandwidth * _state.requestLimit;
+		Flow<Tag>::Exchange(provider, consumer);
 
-			for (auto iter = _cache.request.begin(); iter != _cache.request.end(); ++iter)
-			{
-				Units limit = std::min(iter->second, totalLimit);
-				iter->second = limit;
-				totalLimit -= limit;
-			}
-
-			_cache.isDirty = false;
-		}
-
-		return _cache.request;
-	}
-
-	template <typename Tag>
-	inline void ConsumeLimiter<Tag>::IncreaseResource(ConsumeLimiter<Tag>::Pack& resourceSupply, Tag tag)
-	{
-		Flow<Tag>::IncreaseResource(_state.originConsumer, resourceSupply);
-
-		_cache.isDirty = true;
+		return consumer;
 	}
 } // Flow

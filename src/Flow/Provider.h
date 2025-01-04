@@ -13,17 +13,13 @@ namespace Flow
 	template<typename Tag>
 	class Flow;
 
-	template<typename OriginResourceTag, typename ConvertedResourceTag>
-	class ConversionWrapper;
-
 	template<typename Tag>
 	class Provider
 	{
 		// Public nested types.
 	public:
 		using Units = TagSelector<Tag>::Units;
-		using Resource = TagSelector<Tag>::Resource;
-		using Pack = TagSelector<Tag>::Pack;
+		using ResourceId = TagSelector<Tag>::ResourceId;
 
 		// Life circle.
 	public:
@@ -35,13 +31,16 @@ namespace Flow
 
 		// Public virtual interface.
 	public:
+		// Get providable resource identifiers to work with.
+		virtual ResourceId GetProvidableId(Tag tag = {}) const = 0;
+
 		// Get available resource amount to check possibility to satisfy a request.
-		virtual const Pack& GetAvailableResources([[maybe_unused]] Tag = {}) const = 0;
+		virtual Units GetAvailableUnits(Tag tag = {}) const = 0;
 
 		// Inheritable virtual interface.
 	protected:
 		// Call after satisfying every request to maintain real amount of the resource.
-		virtual void ReduceResource(Pack& resourceRequest, [[maybe_unused]] Tag = {}) = 0;
+		virtual void ReduceUnits(Units resourceRequest) = 0;
 
 		// Private types.
 	private:

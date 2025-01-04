@@ -3,108 +3,80 @@
 
 #include "Flow.h"
 
-#include <unordered_map>
-
 namespace Flow
 {
-	template <typename Tag>
+	template<typename Tag>
 	class ProvideLimiter final : public Provider<Tag>
 	{
 		// Public nested types.
 	public:
 		using Units = TagSelector<Tag>::Units;
-		using Resource = TagSelector<Tag>::Resource;
-		using Pack = TagSelector<Tag>::Pack;
+		using ResourceId = TagSelector<Tag>::ResourceId;
 
 		struct State
 		{
-			Units bandwidth;
-			float requestLimit;
+			Units buffer;
+			float bandwidth;
 			Provider<Tag>& originProvider;
-		};
-
-		struct Cache
-		{
-			Pack supply;
-			bool isDirty = true;
 		};
 
 		// Life circle.
 	public:
-		inline ProvideLimiter(Provider<Tag>& originProvider, Units bandwidth, float requestLimit = 1.f);
+		inline ProvideLimiter(Provider<Tag>& originProvider, Units buffer, float bandwidth = 1.f);
 
 		// Public interface.
 	public:
-		// Change outcoming bandwith.
-		inline void ChangeBandwidth(Units newValue);
+		// Change exchange buffer.
+		inline void SetUnitsBuffer(Units newValue) { mState.buffer = newValue; }
 
-		// Temporary set request limit until resource will reduced.
-		inline void PendRequestLimit(float newValue = 1.f);
+		// Set bandwidth for any cases.
+		inline void SetUnitsBandwidth(float newValue = 1.f) { mState.bandwidth = newValue; }
 
 		// Public virtual interface substitution.
 	public:
-		// Provider::GetAvailableResources
-		inline virtual const Pack& GetAvailableResources([[maybe_unused]] Tag = {}) const override;
+		// Provider::GetProvidableId
+		inline ResourceId GetProvidableId(Tag tag = {}) const { return mState.originProvider.GetProvidableId(); }
 
-		// Provider::ReduceResource
-		inline virtual void ReduceResource(Pack& resourceRequest, [[maybe_unused]] Tag = {}) override;
+		// Provider::GetAvailableUnits
+		inline Units GetAvailableUnits(Tag tag = {}) const override;
+
+		// Provider::ReduceUnits
+		inline void ReduceUnits(Units resourceRequest) override { Flow<Tag>::ReduceUnits(mState.originProvider, resourceRequest); }
 
 		// Private state.
 	private:
-		State _state;
-
-		// Private cache.
-	private:
-		mutable Cache _cache;
+		State mState;
 	};
 
 	template<typename Tag>
-	inline ProvideLimiter<Tag>::ProvideLimiter(Provider<Tag>& originProvider, ProvideLimiter<Tag>::Units bandwidth, float requestLimit)
+	inline ProvideLimiter<Tag>::ProvideLimiter(Provider<Tag>& originProvider, ProvideLimiter::Units buffer, float bandwidth)
 		: Provider<Tag>{}
-		, _state{ bandwidth, requestLimit, originProvider }
+		, mState{ bandwidth, buffer, originProvider }
 	{
 	}
 
 	template<typename Tag>
-	inline void ProvideLimiter<Tag>::ChangeBandwidth(Units newValue)
+	inline ProvideLimiter<Tag>::Units ProvideLimiter<Tag>::GetAvailableUnits(Tag tag) const
 	{
-		_state.bandwidth = newValue;
-		_cache.isDirty = true;
+		const Units possibleUnits = static_cast<Units>(mState.buffer * mState.bandwidth);
+		const Units availableUnits = mState.originProvider.GetAvailableUnits();
+
+		return std::min(availableUnits, possibleUnits);
 	}
 
 	template<typename Tag>
-	inline void ProvideLimiter<Tag>::PendRequestLimit(float newValue)
+	Consumer<Tag>& operator<<(Consumer<Tag>& consumer, ProvideLimiter<Tag>&& provider)
 	{
-		_state.requestLimit = newValue;
-		_cache.isDirty = true;
+		Flow<Tag>::Exchange(provider, consumer);
+
+		return consumer;
 	}
 
 	template<typename Tag>
-	inline const ProvideLimiter<Tag>::Pack& ProvideLimiter<Tag>::GetAvailableResources(Tag tag) const
+	Provider<Tag>& operator>>(ProvideLimiter<Tag>&& provider, Consumer<Tag>& consumer)
 	{
-		if (_cache.isDirty)
-		{
-			_cache.supply = _state.originProvider.GetAvailableResources();
-			Units totalLimit = _state.bandwidth * _state.requestLimit;
+		Flow<Tag>::Exchange(provider, consumer);
 
-			for (auto iter = _cache.supply.begin(); iter != _cache.supply.end(); ++iter)
-			{
-				Units limit = std::min(iter->second, totalLimit);
-				iter->second = limit;
-				totalLimit -= limit;
-			}
-
-			_cache.isDirty = false;
-		}
-
-		return _cache.supply;
-	}
-
-	template <typename Tag>
-	inline void ProvideLimiter<Tag>::ReduceResource(ProvideLimiter<Tag>::Pack& resourceRequest, Tag tag)
-	{
-		Flow<Tag>::ReduceResource(_state.originProvider, resourceRequest);
-
-		_cache.isDirty = true;
+		return provider;
 	}
 } // Flow

@@ -1,11 +1,10 @@
+// (c) 2024 Acid7Beast. Use with wisdom.
 #pragma once
 
 #include "Tag.h"
 
 #include "Provider.h"
 #include "Consumer.h"
-
-#include <utility>
 
 namespace Flow
 {
@@ -27,8 +26,7 @@ namespace Flow
 		// Public nested types.
 	public:
 		using Units = TagSelector<Tag>::Units;
-		using Resource = TagSelector<Tag>::Resource;
-		using Pack = TagSelector<Tag>::Pack;
+		using ResourceId = TagSelector<Tag>::ResourceId;
 
 		// Public static interface.
 	public:
@@ -40,92 +38,54 @@ namespace Flow
 		friend ProvideLimiter<Tag>;
 		friend ConsumeLimiter<Tag>;
 
+		// Private constants.
+	public:
+		static constexpr Units kZeroUnits = static_cast<Units>(0);
+
 		// Private static interface.
 	private:
 		// Increase resource.
-		static void IncreaseResource(Consumer<Tag>& consumer, Consumer<Tag>::Pack& supply);
+		static void IncreaseUnits(Consumer<Tag>& consumer, Consumer<Tag>::Units& supply);
 
 		// Reduce resource.
-		static void ReduceResource(Provider<Tag>& provider, Provider<Tag>::Pack& request);
+		static void ReduceUnits(Provider<Tag>& provider, Provider<Tag>::Units& request);
 	};
 
 	template<typename Tag>
 	inline ExchangeResult Flow<Tag>::Exchange(Provider<Tag>& provider, Consumer<Tag>& consumer)
 	{
-		constexpr Units kEpsilon = std::numeric_limits<Units>::epsilon();
-		constexpr Units kZero = static_cast<Units>(0);
+		constexpr Units kEpsilonUnits = std::numeric_limits<Units>::epsilon();
 
-		const Pack demand = consumer.GetRequestResources();
-		const Pack supply = provider.GetAvailableResources();
-
-		auto hasResource =
-			[](const std::pair<Resource, Units>& pair) -> bool {
-			return (pair.second > kEpsilon);
-			};
-
-		auto demandIter = std::find_if(
-			demand.begin(),
-			demand.end(),
-			hasResource
-		);
-
-		const bool emptyDemand = (demandIter == demand.end());
-		if (emptyDemand)
+		if (provider.GetProvidableId() != consumer.GetConsumableId())
 		{
 			return ExchangeResult::Unchanged;
 		}
 
-		auto supplyIter = std::find_if(
-			supply.begin(),
-			supply.end(),
-			hasResource
-		);
+		const Units demandUnits = consumer.GetRequestUnits();
+		const Units supplyUnits = provider.GetAvailableUnits();
 
-		const bool emptySupply = (supplyIter == supply.end());
-		if (emptySupply)
+		const Units compromise = std::clamp(demandUnits, kZeroUnits, supplyUnits);
+		if (compromise < kEpsilonUnits)
 		{
 			return ExchangeResult::Unchanged;
 		}
 
-		Pack request;
-		for (auto [resource, consumeAmount] : demand)
-		{
-			auto provideIter = supply.find(resource);
-			if (provideIter == supply.end())
-			{
-				continue;
-			}
-
-			request[resource] = std::max(std::min(consumeAmount, provideIter->second), kZero);
-		}
-
-		auto requestIter = std::find_if(
-			request.begin(),
-			request.end(),
-			hasResource
-		);
-
-		if (requestIter == request.end())
-		{
-			return ExchangeResult::Unchanged;
-		}
-
-		consumer.IncreaseResource(request);
-		provider.ReduceResource(request);
+		consumer.IncreaseUnits(compromise);
+		provider.ReduceUnits(compromise);
 
 		return ExchangeResult::Changed;
 	}
 
 	template<typename Tag>
-	inline void Flow<Tag>::IncreaseResource(Consumer<Tag>& consumer, Consumer<Tag>::Pack& supply)
+	inline void Flow<Tag>::IncreaseUnits(Consumer<Tag>& consumer, Consumer<Tag>::Units& supply)
 	{
-		consumer.IncreaseResource(supply);
+		consumer.IncreaseUnits(supply);
 	}
 
 	template<typename Tag>
-	inline void Flow<Tag>::ReduceResource(Provider<Tag>& provider, Provider<Tag>::Pack& request)
+	inline void Flow<Tag>::ReduceUnits(Provider<Tag>& provider, Provider<Tag>::Units& request)
 	{
-		provider.ReduceResource(request);
+		provider.ReduceUnits(request);
 	}
 
 	template<typename Tag>
@@ -138,38 +98,6 @@ namespace Flow
 
 	template<typename Tag>
 	Provider<Tag>& operator>>(Provider<Tag>& provider, Consumer<Tag>& consumer)
-	{
-		Flow<Tag>::Exchange(provider, consumer);
-
-		return provider;
-	}
-
-	template<typename Tag>
-	Consumer<Tag>& operator<<(ConsumeLimiter<Tag>&& consumer, Provider<Tag>& provider)
-	{
-		Flow<Tag>::Exchange(provider, consumer);
-
-		return consumer;
-	}
-
-	template<typename Tag>
-	Provider<Tag>& operator>>(ProvideLimiter<Tag>&& provider, Consumer<Tag>& consumer)
-	{
-		Flow<Tag>::Exchange(provider, consumer);
-
-		return provider;
-	}
-
-	template<typename Tag>
-	Consumer<Tag>& operator<<(Consumer<Tag>& consumer, ProvideLimiter<Tag>&& provider)
-	{
-		Flow<Tag>::Exchange(provider, consumer);
-
-		return consumer;
-	}
-
-	template<typename Tag>
-	Provider<Tag>& operator>>(Provider<Tag>& provider, ConsumeLimiter<Tag>&& consumer)
 	{
 		Flow<Tag>::Exchange(provider, consumer);
 

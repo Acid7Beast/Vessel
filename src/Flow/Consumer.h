@@ -19,26 +19,26 @@ namespace Flow
 		// Public nested types.
 	public:
 		using Units = TagSelector<Tag>::Units;
-		using Resource = TagSelector<Tag>::Resource;
-		using Pack = TagSelector<Tag>::Pack;
+		using ResourceId = TagSelector<Tag>::ResourceId;
 
 		// Life circle.
 	public:
 		virtual ~Consumer() = default;
 
-		// Public interface.
-	public:
 		ExchangeResult Consume(Provider<Tag>& provider);
 
 		// Public virtual interface.
 	public:
+		// Get consumable resource identifiers to work with.
+		virtual ResourceId GetConsumableId(Tag tag = {}) const = 0;
+
 		// Requested resource amount needed to fulfill all the needs of this consumer.
-		virtual const Pack& GetRequestResources([[maybe_unused]] Tag = {}) const = 0;
+		virtual Units GetRequestUnits(Tag tag = {}) const = 0;
 
 		// Inheritable virtual interface.
 	protected:
 		// Satisfy request of this consumer with some amount of the resource.
-		virtual void IncreaseResource(Pack& resourceSupply, [[maybe_unused]] Tag = {}) = 0;
+		virtual void IncreaseUnits(Units resourceSupply) = 0;
 
 		// Private types.
 	private:
