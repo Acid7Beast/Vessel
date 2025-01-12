@@ -15,10 +15,8 @@ namespace Flow
 		using Units = TagSelector<Tag>::Units;
 		using ResourceId = TagSelector<Tag>::ResourceId;
 		using Container = Container<Tag>;
-		using ContainerProperties = Container::Properties;
-		using ContainerState = Container::State;
-		using ContainerPropertiesTable = std::unordered_map<ResourceId, ContainerProperties>;
-		using ContainerStateTable = std::unordered_map<ResourceId, ContainerState>;
+		using ContainerPropertiesTable = std::unordered_map<ResourceId, Units>;
+		using ContainerStateTable = std::unordered_map<ResourceId, Units>;
 
 		static constexpr Units kZeroUnits = static_cast<Units>(0);
 
@@ -52,7 +50,7 @@ namespace Flow
 
 		// Private properties.
 	private:
-		const std::unordered_map<ResourceId, ContainerProperties>& mContainerProperties;
+		const ContainerPropertiesTable& mContainerProperties;
 	};
 
 	template<typename Tag>
@@ -67,13 +65,13 @@ namespace Flow
 	inline void Package<Tag>::LoadState(const Package<Tag>::ContainerStateTable& containerStates)
 	{
 		mContainerItems.clear();
-		for (auto& [resourceId, properties] : mContainerProperties)
+		for (auto& [resourceId, capacity] : mContainerProperties)
 		{
-			mContainerItems.emplace(resourceId, Container(properties));
+			mContainerItems.emplace(resourceId, Container{ capacity });
 
 			if (containerStates.contains(resourceId))
 			{
-				mContainerItems.at(resourceId).LoadState(containerStates.at(resourceId));
+				mContainerItems.at(resourceId).SetAmount(containerStates.at(resourceId));
 			}
 		}
 	}
@@ -83,7 +81,7 @@ namespace Flow
 	{
 		for (const auto& [resourceId, container] : mContainerItems)
 		{
-			container.SaveState(containerStates[resourceId]);
+			containerStates[resourceId] = container.GetAmount();
 		}
 	}
 
@@ -117,8 +115,7 @@ namespace Flow
 	template<typename Tag>
 	inline Package<Tag>::Container& Package<Tag>::GetContainer(ResourceId resourceId)
 	{
-		static ContainerProperties kEmptyProperties{};
-		static Container kEmptyItem{ kEmptyProperties };
+		static Container kEmptyItem{ kZeroUnits };
 
 		if (!mContainerItems.contains(resourceId))
 		{
@@ -131,8 +128,7 @@ namespace Flow
 	template<typename Tag>
 	inline const Package<Tag>::Container& Package<Tag>::GetContainer(ResourceId resourceId) const
 	{
-		static ContainerProperties kEmptyProperties{};
-		static Container kEmptyItem{ kEmptyProperties };
+		static Container kEmptyItem{ kZeroUnits };
 
 		if (!mContainerItems.contains(resourceId))
 		{

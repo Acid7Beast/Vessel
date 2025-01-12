@@ -71,13 +71,8 @@ namespace {
 	{
 		// Inheritable state.
 	protected:
-		Container::Properties properties{ kCapacityAmountKg };
-		Container::State emptyState{ kEmptyAmountKg };
-		Container::State halfState{ kHalfCapacityAmountKg };
-		Container::State fullState{ kCapacityAmountKg };
-		Container::State testState;
-		Container provider{ properties };
-		Container consumer{ properties };
+		Container provider{ kCapacityAmountKg };
+		Container consumer{ kCapacityAmountKg };
 		ContainerChecker providerChecker{ provider };
 		ContainerChecker consumerChecker{ consumer };
 	};
@@ -90,55 +85,51 @@ namespace {
 
 	TEST_F(ContainerFixture, LoadStateTest) {
 		// Make the consumer empty.
-		consumer.LoadState(emptyState);
+		consumer.SetAmount(kEmptyAmountKg);
 		consumerChecker.CheckEmptyState();
 
 		// Make the consumer full.
-		consumer.LoadState(fullState);
+		consumer.SetAmount(kCapacityAmountKg);
 		consumerChecker.CheckFullState();
 
 		// Make the consumer half.
-		consumer.LoadState(halfState);
+		consumer.SetAmount(kHalfCapacityAmountKg);
 		consumerChecker.CheckHalfState();
 
 		// Make the consumer empty again.
-		consumer.LoadState(emptyState);
+		consumer.SetAmount(kEmptyAmountKg);
 		consumerChecker.CheckEmptyState();
 	}
 
 	TEST_F(ContainerFixture, SaveStateTest) {
 		// Check moving empty state to another container.
-		consumer.LoadState(emptyState);
-		consumer.SaveState(testState);
-		provider.LoadState(testState);
+		consumer.SetAmount(kEmptyAmountKg);
+		provider.SetAmount(consumer.GetAmount());
 		consumerChecker.CheckEmptyState();
 		providerChecker.CheckEmptyState();
 
 		// Check moving full state to another container.
-		consumer.LoadState(fullState);
-		consumer.SaveState(testState);
-		provider.LoadState(testState);
+		consumer.SetAmount(kCapacityAmountKg);
+		provider.SetAmount(consumer.GetAmount());
 		consumerChecker.CheckFullState();
 		providerChecker.CheckFullState();
 
 		// Check moving half state to another container.
-		consumer.LoadState(halfState);
-		consumer.SaveState(testState);
-		provider.LoadState(testState);
+		consumer.SetAmount(kHalfCapacityAmountKg);
+		provider.SetAmount(consumer.GetAmount());
 		consumerChecker.CheckHalfState();
 		providerChecker.CheckHalfState();
 
 		// Check moving empty state to another container again.
-		consumer.LoadState(emptyState);
-		consumer.SaveState(testState);
-		provider.LoadState(testState);
+		consumer.SetAmount(kEmptyAmountKg);
+		provider.SetAmount(consumer.GetAmount());
 		consumerChecker.CheckEmptyState();
 		providerChecker.CheckEmptyState();
 	}
 
 	TEST_F(ContainerFixture, ProvideOperatorTestIn) {
 		// Check resource transit to consumer with `<<`.
-		consumer.LoadState(emptyState);
+		consumer.SetAmount(kEmptyAmountKg);
 		consumer << provider << provider;
 		providerChecker.CheckEmptyState();
 		consumerChecker.CheckFullState();
@@ -146,7 +137,7 @@ namespace {
 
 	TEST_F(ContainerFixture, ProvideOperatorTestOut) {
 		// Check resource transit to consumer with `>>`.
-		consumer.LoadState(emptyState);
+		consumer.SetAmount(kEmptyAmountKg);
 		provider >> consumer >> consumer;
 		providerChecker.CheckEmptyState();
 		consumerChecker.CheckFullState();
@@ -154,7 +145,7 @@ namespace {
 	
 	TEST_F(ContainerFixture, ProvideLimiterTestIn) {
 		// Check resource transit through limiter with `<<`.
-		consumer.LoadState(emptyState);
+		consumer.SetAmount(kEmptyAmountKg);
 		consumer << ProvideLimiter(provider, kHalfCapacityAmountKg);
 		providerChecker.CheckHalfState();
 		consumerChecker.CheckHalfState();
@@ -166,7 +157,7 @@ namespace {
 
 	TEST_F(ContainerFixture, ProvideLimiterTestOut) {
 		// Check resource transit through limiter with `>>`.
-		consumer.LoadState(emptyState);
+		consumer.SetAmount(kEmptyAmountKg);
 		ProvideLimiter(provider, kHalfCapacityAmountKg) >> consumer;
 		providerChecker.CheckHalfState();
 		consumerChecker.CheckHalfState();
@@ -178,7 +169,7 @@ namespace {
 
 	TEST_F(ContainerFixture, ConsumeLimiterTestIn) {
 		// Check resource transit through limiter with `<<`.
-		consumer.LoadState(emptyState);
+		consumer.SetAmount(kEmptyAmountKg);
 		ConsumeLimiter(consumer, kHalfCapacityAmountKg) << provider;
 		providerChecker.CheckHalfState();
 		consumerChecker.CheckHalfState();
@@ -190,7 +181,7 @@ namespace {
 
 	TEST_F(ContainerFixture, ConsumeLimiterTestOut) {
 		// Check resource transit through limiter with `>>`.
-		consumer.LoadState(emptyState);
+		consumer.SetAmount(kEmptyAmountKg);
 		provider >> ConsumeLimiter(consumer, kHalfCapacityAmountKg);
 		providerChecker.CheckHalfState();
 		consumerChecker.CheckHalfState();

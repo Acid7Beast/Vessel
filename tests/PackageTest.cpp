@@ -38,10 +38,10 @@ namespace {
 	constexpr Units kCapacityAmountKg = 255.f;
 	constexpr Units kHalfCapacityAmountKg = kCapacityAmountKg * 0.5f;
 
-	static const std::unordered_map<ResourceId, Package::ContainerProperties> kContainerProperties
+	static const std::unordered_map<ResourceId, Package::Units> kContainerProperties
 	{
-		{ ResourceId::Test1, Package::ContainerProperties{kCapacityAmountKg}},
-		{ ResourceId::Test2, Package::ContainerProperties{kCapacityAmountKg}},
+		{ ResourceId::Test1, kCapacityAmountKg},
+		{ ResourceId::Test2, kCapacityAmountKg},
 	};
 
 	class PackageChecker
@@ -91,9 +91,6 @@ namespace {
 	{
 		// Inheritable state.
 	protected:
-		Container::State emptyState{ kEmptyAmountKg };
-		Container::State halfState{ kHalfCapacityAmountKg };
-		Container::State fullState{ kCapacityAmountKg };
 		Package consumerPackage{ kContainerProperties };
 		Package providerPackage{ kContainerProperties };
 		PackageChecker consumerChecker{ consumerPackage };
@@ -127,8 +124,8 @@ namespace {
 		Package::ContainerStateTable testSafeStateTable;
 		consumerPackage.SaveState(testSafeStateTable);
 
-		EXPECT_EQ(testSafeStateTable.at(ResourceId::Test1).amount, kCapacityAmountKg);
-		EXPECT_EQ(testSafeStateTable.at(ResourceId::Test2).amount, kCapacityAmountKg);
+		EXPECT_EQ(testSafeStateTable.at(ResourceId::Test1), kCapacityAmountKg);
+		EXPECT_EQ(testSafeStateTable.at(ResourceId::Test2), kCapacityAmountKg);
 	}
 
 	TEST_F(PackageFixture, ExchangeStateTest) {
@@ -160,8 +157,8 @@ namespace {
 
 	TEST_F(PackageFixture, ExchangeTest) {
 		// Empty consumer.
-		consumerPackage.GetContainer(ResourceId::Test1).LoadState(emptyState);
-		consumerPackage.GetContainer(ResourceId::Test2).LoadState(emptyState);
+		consumerPackage.GetContainer(ResourceId::Test1).SetAmount(kEmptyAmountKg);
+		consumerPackage.GetContainer(ResourceId::Test2).SetAmount(kEmptyAmountKg);
 		consumerChecker.CheckEmptyState(ResourceId::Test1);
 		consumerChecker.CheckEmptyState(ResourceId::Test2);
 
@@ -182,10 +179,8 @@ namespace {
 
 	TEST_F(PackageFixture, AdapterTest) {
 		// Create a test container to adapt.
-		Package::ContainerProperties testContainerProperties{ kCapacityAmountKg };
-		Package::ContainerState testContainerState{ kEmptyAmountKg };
-		Package::Container testContainer{ testContainerProperties };
-		testContainer.LoadState(testContainerState);
+		Package::Container testContainer{ kCapacityAmountKg };
+		testContainer.SetAmount(kEmptyAmountKg);
 		{
 			PackageAdapter testAdapter{ ResourceId::Test2, testContainer };
 			PackageChecker checker{ testAdapter };

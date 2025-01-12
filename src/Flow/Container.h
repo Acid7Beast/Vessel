@@ -18,19 +18,9 @@ namespace Flow
 
 		static constexpr Units kZeroUnits = static_cast<Units>(0);
 
-		struct State
-		{
-			Units amount = kZeroUnits;
-		};
-
-		struct Properties
-		{
-			Units capacity = kZeroUnits;
-		};
-
 		// Life circle.
 	public:
-		inline Container(const Properties& properties);
+		inline Container(Units capacity);
 
 		inline Container(const Container& other);
 		inline Container(const Container&& other);
@@ -42,27 +32,27 @@ namespace Flow
 		// Public interface.
 	public:
 		// Deserialize state of this resource container for a save.
-		inline void LoadState(const State& state);
+		inline void SetAmount(Units amount);
 
 		// Serialize state of this resource container from a save. 
-		inline void SaveState(State& state) const;
+		inline Units GetAmount() const;
 
 		// Reset state of this resource container to default values.
 		inline void ResetState();
 
 		// Get capacity of this container.
-		inline Units GetCapacity() const { return mProperties.capacity; }
+		inline Units GetCapacity() const { return mCapacity; }
 
 		// Check container for any resources.
-		inline bool IsEmpty() const { return mState.amount > kZeroUnits; }
+		inline bool IsEmpty() const { return mAmount > kZeroUnits; }
 
 		// Public virtual interface substitution.
 	public:
 		// Consumer::GetRequestUnits
-		inline Units GetRequestUnits(Tag tag = {}) const override { return mProperties.capacity - mState.amount; }
+		inline Units GetRequestUnits(Tag tag = {}) const override { return mCapacity - mAmount; }
 
 		// Provider::GetAvailableUnits
-		inline Units GetAvailableUnits(Tag tag = {}) const override { return mState.amount; }
+		inline Units GetAvailableUnits(Tag tag = {}) const override { return mAmount; }
 
 		// Private virtual interface substitution.
 	private:
@@ -74,38 +64,38 @@ namespace Flow
 
 		// Private state.
 	private:
-		State mState;
+		Units mAmount;
 
 		// Private properties.
 	private:
-		const Properties& mProperties;
+		const Units mCapacity;
 	};
 
 	template<typename Tag>
-	inline Container<Tag>::Container(const Properties& properties)
-		: mProperties{ properties }
-		, mState{ mState.amount = properties.capacity }
+	inline Container<Tag>::Container(Container<Tag>::Units capacity)
+		: mCapacity{ capacity }
+		, mAmount{ capacity }
 	{
 	}
 
 	template<typename Tag>
 	inline Container<Tag>::Container(const Container<Tag>& other)
-		: mProperties{ other.mProperties }
+		: mCapacity{ other.mCapacity }
 	{		
 	}
 
 	template<typename Tag>
 	inline Container<Tag>::Container(const Container&& other)
-		: mProperties{ other.mProperties }
-		, mState{ other.mState }
+		: mCapacity{ other.mCapacity }
+		, mAmount{ other.mAmount }
 	{
 	}
 
 	template<typename Tag>
 	inline Container<Tag>& Container<Tag>::operator=(Container<Tag>& other)
 	{
-		mProperties = other.mProperties;
-		mState.amount = std::min(mState.amount, mProperties.capacity);
+		mCapacity = other.mCapacity;
+		mAmount = std::min(mAmount, mCapacity);
 
 		Exchanger<Tag>::Exchange(other, *this);
 	}
@@ -113,36 +103,36 @@ namespace Flow
 	template<typename Tag>
 	inline void Container<Tag>::operator=(const Container<Tag>& other)
 	{
-		mProperties = other.mProperties;
+		mCapacity = other.mCapacity;
 	}
 
 	template<typename Tag>
-	inline void Container<Tag>::LoadState(const State& state)
+	inline void Container<Tag>::SetAmount(Units amount)
 	{
-		mState = state;
+		mAmount = amount;
 	}
 
 	template<typename Tag>
-	inline void Container<Tag>::SaveState(State& state) const
+	inline Container<Tag>::Units Container<Tag>::GetAmount() const
 	{
-		state = mState;
+		return mAmount;
 	}
 
 	template<typename Tag>
 	inline void Container<Tag>::ResetState()
 	{
-		mState = {};
+		mAmount = kZeroUnits;
 	}
 
 	template<typename Tag>
 	inline void Container<Tag>::IncreaseUnits(Units resourceSupply)
 	{
-		mState.amount = std::min(mState.amount + resourceSupply, mProperties.capacity);
+		mAmount = std::min(mAmount + resourceSupply, mCapacity);
 	}
 
 	template<typename Tag>
 	inline void Container<Tag>::ReduceUnits(Units resourceRequest)
 	{
-		mState.amount = std::max(mState.amount - resourceRequest, kZeroUnits);
+		mAmount = std::max(mAmount - resourceRequest, kZeroUnits);
 	}
 } // Flow
