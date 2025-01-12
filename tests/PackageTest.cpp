@@ -1,0 +1,205 @@
+// (c) 2024 Acid7Beast. Use with wisdom.
+#include <gtest/gtest.h>
+#include <format>
+#include <ostream>
+#include <numeric>
+
+#include <Flow/Package.h>
+#include <Flow/PackageAdapter.h>
+
+namespace Flow
+{
+	struct PackTestTag {};
+
+	enum class TestResource : uint8_t
+	{
+		Test1,
+		Test2,
+	};
+
+	// Specialize for Test.
+	template <>
+	struct TagSelector<PackTestTag> {
+		using Units = float;
+		using ResourceId = TestResource;
+	};
+}
+
+namespace {
+	using Tag = ::Flow::PackTestTag;
+	using ResourceId = ::Flow::Package<Tag>::ResourceId;
+	using Container = ::Flow::Container<Tag>;
+	using PackageInterface = ::Flow::PackageInterface<Tag>;
+	using Package = ::Flow::Package<Tag>;
+	using PackageAdapter = ::Flow::PackageAdapter<Tag>;
+	using Units = Package::Units;
+
+	constexpr Units kEmptyAmountKg = 0.f;
+	constexpr Units kCapacityAmountKg = 255.f;
+	constexpr Units kHalfCapacityAmountKg = kCapacityAmountKg * 0.5f;
+
+	static const std::unordered_map<ResourceId, Package::ContainerProperties> kContainerProperties
+	{
+		{ ResourceId::Test1, Package::ContainerProperties{kCapacityAmountKg}},
+		{ ResourceId::Test2, Package::ContainerProperties{kCapacityAmountKg}},
+	};
+
+	class PackageChecker
+	{
+		// Life circle.
+	public:
+		PackageChecker(const PackageInterface& package)
+			: mPackage{ package }
+		{
+		}
+
+		// Public interface.
+	public:
+		// Check 100% fullness state.
+		void CheckFullState(ResourceId resourceId) const
+		{
+			const Container& container = mPackage.GetContainer(resourceId);
+
+			EXPECT_FLOAT_EQ(container.GetRequestUnits(), kEmptyAmountKg);
+			EXPECT_FLOAT_EQ(container.GetAvailableUnits(), kCapacityAmountKg);
+		}
+
+		// Check 50% fullness state.
+		void CheckHalfState(ResourceId resourceId) const
+		{
+			const Container& container = mPackage.GetContainer(resourceId);
+
+			EXPECT_FLOAT_EQ(container.GetRequestUnits(), kHalfCapacityAmountKg);
+			EXPECT_FLOAT_EQ(container.GetAvailableUnits(), kHalfCapacityAmountKg);
+		}
+
+		// Check 0% fullness state.
+		void CheckEmptyState(ResourceId resourceId) const
+		{
+			const Container& container = mPackage.GetContainer(resourceId);
+
+			EXPECT_FLOAT_EQ(container.GetRequestUnits(), kCapacityAmountKg);
+			EXPECT_FLOAT_EQ(container.GetAvailableUnits(), kEmptyAmountKg);
+		}
+
+		// Private state.
+	private:
+		const PackageInterface& mPackage;
+	};
+
+	class PackageFixture : public ::testing::Test
+	{
+		// Inheritable state.
+	protected:
+		Container::State emptyState{ kEmptyAmountKg };
+		Container::State halfState{ kHalfCapacityAmountKg };
+		Container::State fullState{ kCapacityAmountKg };
+		Package consumerPackage{ kContainerProperties };
+		Package providerPackage{ kContainerProperties };
+		PackageChecker consumerChecker{ consumerPackage };
+		PackageChecker providerChecker{ providerPackage };
+	};
+
+	TEST_F(PackageFixture, ConstructorTest) {
+		// Resources are full on creation.
+		consumerChecker.CheckFullState(ResourceId::Test1);
+		consumerChecker.CheckFullState(ResourceId::Test2);
+
+		providerChecker.CheckFullState(ResourceId::Test1);
+		providerChecker.CheckFullState(ResourceId::Test2);
+	}
+
+	TEST_F(PackageFixture, StateLoadTest) {
+		// Empty containers.
+		const Package::ContainerStateTable emptyStateTable
+		{
+			{ResourceId::Test1, { kEmptyAmountKg }},
+			{ResourceId::Test2, { kEmptyAmountKg }},
+		};
+
+		// Check state loading.
+		consumerPackage.LoadState(emptyStateTable);
+		consumerChecker.CheckEmptyState(ResourceId::Test1);
+		consumerChecker.CheckEmptyState(ResourceId::Test2);
+	}
+	TEST_F(PackageFixture, SaveStateTest) {
+		// Try to save.
+		Package::ContainerStateTable testSafeStateTable;
+		consumerPackage.SaveState(testSafeStateTable);
+
+		EXPECT_EQ(testSafeStateTable.at(ResourceId::Test1).amount, kCapacityAmountKg);
+		EXPECT_EQ(testSafeStateTable.at(ResourceId::Test2).amount, kCapacityAmountKg);
+	}
+
+	TEST_F(PackageFixture, ExchangeStateTest) {
+		// Half of capacity containers.
+		const Package::ContainerStateTable halfStateTable
+		{
+			{ResourceId::Test1, { kHalfCapacityAmountKg }},
+			{ResourceId::Test2, { kHalfCapacityAmountKg }},
+		};
+
+		// Check state loading.
+		consumerPackage.LoadState(halfStateTable);
+		consumerChecker.CheckHalfState(ResourceId::Test1);
+		consumerChecker.CheckHalfState(ResourceId::Test2);
+		providerChecker.CheckFullState(ResourceId::Test1);
+		providerChecker.CheckFullState(ResourceId::Test2);
+
+		// Try to save.
+		Package::ContainerStateTable testSateStateTable;
+		consumerPackage.SaveState(testSateStateTable);
+		consumerChecker.CheckHalfState(ResourceId::Test1);
+		consumerChecker.CheckHalfState(ResourceId::Test2);
+
+		// Try to load.
+		providerPackage.LoadState(testSateStateTable);
+		providerChecker.CheckHalfState(ResourceId::Test1);
+		providerChecker.CheckHalfState(ResourceId::Test2);
+	}
+
+	TEST_F(PackageFixture, ExchangeTest) {
+		// Empty consumer.
+		consumerPackage.GetContainer(ResourceId::Test1).LoadState(emptyState);
+		consumerPackage.GetContainer(ResourceId::Test2).LoadState(emptyState);
+		consumerChecker.CheckEmptyState(ResourceId::Test1);
+		consumerChecker.CheckEmptyState(ResourceId::Test2);
+
+		// Try and check resource transfer.
+		providerPackage >> consumerPackage;
+		consumerChecker.CheckFullState(ResourceId::Test1);
+		consumerChecker.CheckFullState(ResourceId::Test2);
+		providerChecker.CheckEmptyState(ResourceId::Test1);
+		providerChecker.CheckEmptyState(ResourceId::Test2);
+
+		// Try and check one more resource transfer.
+		providerPackage << consumerPackage;
+		consumerChecker.CheckEmptyState(ResourceId::Test1);
+		consumerChecker.CheckEmptyState(ResourceId::Test2);
+		providerChecker.CheckFullState(ResourceId::Test1);
+		providerChecker.CheckFullState(ResourceId::Test2);
+	}
+
+	TEST_F(PackageFixture, AdapterTest) {
+		// Create a test container to adapt.
+		Package::ContainerProperties testContainerProperties{ kCapacityAmountKg };
+		Package::ContainerState testContainerState{ kEmptyAmountKg };
+		Package::Container testContainer{ testContainerProperties };
+		testContainer.LoadState(testContainerState);
+		{
+			PackageAdapter testAdapter{ ResourceId::Test2, testContainer };
+			PackageChecker checker{ testAdapter };
+			checker.CheckEmptyState(ResourceId::Test2);
+		}
+
+		// Supply resources to the test container.
+		providerPackage >> PackageAdapter(ResourceId::Test2, testContainer);
+		providerChecker.CheckFullState(ResourceId::Test1);
+		providerChecker.CheckEmptyState(ResourceId::Test2);
+		{
+			PackageAdapter testAdapter{ ResourceId::Test2, testContainer };
+			PackageChecker checker{ testAdapter };
+			checker.CheckFullState(ResourceId::Test2);
+		}
+	}
+} // namespace

@@ -5,45 +5,36 @@
 #include <numeric>
 
 #include <Flow/Container.h>
-#include <Flow/Flow.h>
 #include <Flow/ProvideLimiter.h>
 #include <Flow/ConsumeLimiter.h>
 
 namespace Flow
 {
-	struct TestTag {};
-
-	enum class TestResource : uint8_t
-	{
-		Test1,
-		Test2,
-	};
+	struct ContainerTestTag {};
 
 	// Specialize for Test.
 	template <>
-	struct TagSelector<TestTag> {
+	struct TagSelector<ContainerTestTag> {
 		using Units = float;
-		using ResourceId = TestResource;
 	};
 }
 
 namespace {
-	using Tag = ::Flow::TestTag;
+	using Tag = ::Flow::ContainerTestTag;
 	using Container = ::Flow::Container<Tag>;
 	using ProvideLimiter = ::Flow::ProvideLimiter<Tag>;
 	using ConsumeLimiter = ::Flow::ConsumeLimiter<Tag>;
 	using Units = Container::Units;
-	using ResourceId = Container::ResourceId;
 
 	constexpr Units kEmptyAmountKg = 0.f;
 	constexpr Units kCapacityAmountKg = 255.f;
 	constexpr Units kHalfCapacityAmountKg = kCapacityAmountKg * 0.5f;
 
-	class ResourceContainerChecker
+	class ContainerChecker
 	{
 		// Life circle.
 	public:
-		ResourceContainerChecker(const Container& container)
+		ContainerChecker(const Container& container)
 			: _container{ container }
 		{
 		}
@@ -76,28 +67,28 @@ namespace {
 		const Container& _container;
 	};
 
-	class ResourceContainerFixture : public ::testing::Test
+	class ContainerFixture : public ::testing::Test
 	{
 		// Inheritable state.
 	protected:
-		Container::Properties properties{ kCapacityAmountKg, ResourceId::Test2 };
+		Container::Properties properties{ kCapacityAmountKg };
 		Container::State emptyState{ kEmptyAmountKg };
 		Container::State halfState{ kHalfCapacityAmountKg };
 		Container::State fullState{ kCapacityAmountKg };
 		Container::State testState;
 		Container provider{ properties };
 		Container consumer{ properties };
-		ResourceContainerChecker providerChecker{ provider };
-		ResourceContainerChecker consumerChecker{ consumer };
+		ContainerChecker providerChecker{ provider };
+		ContainerChecker consumerChecker{ consumer };
 	};
 
-	TEST_F(ResourceContainerFixture, ConstructorTest) {
+	TEST_F(ContainerFixture, ConstructorTest) {
 		// Resources are full on creation.
 		providerChecker.CheckFullState();
 		consumerChecker.CheckFullState();
 	}
 
-	TEST_F(ResourceContainerFixture, LoadStateTest) {
+	TEST_F(ContainerFixture, LoadStateTest) {
 		// Make the consumer empty.
 		consumer.LoadState(emptyState);
 		consumerChecker.CheckEmptyState();
@@ -115,7 +106,7 @@ namespace {
 		consumerChecker.CheckEmptyState();
 	}
 
-	TEST_F(ResourceContainerFixture, SaveStateTest) {
+	TEST_F(ContainerFixture, SaveStateTest) {
 		// Check moving empty state to another container.
 		consumer.LoadState(emptyState);
 		consumer.SaveState(testState);
@@ -145,19 +136,7 @@ namespace {
 		providerChecker.CheckEmptyState();
 	}
 
-	TEST_F(ResourceContainerFixture, DifferentResourceIdsTest) {
-		// Check resource transit to consumer with `<<`.
-		Container::Properties tmpProps{ kCapacityAmountKg, ResourceId::Test1 };
-		Container tmpProvider{ tmpProps };
-		ResourceContainerChecker{ tmpProvider }.CheckFullState();
-
-		consumer.LoadState(emptyState);
-		consumer << tmpProvider;
-		consumerChecker.CheckEmptyState();
-		ResourceContainerChecker{ tmpProvider }.CheckFullState();
-	}
-
-	TEST_F(ResourceContainerFixture, ProvideOperatorTestIn) {
+	TEST_F(ContainerFixture, ProvideOperatorTestIn) {
 		// Check resource transit to consumer with `<<`.
 		consumer.LoadState(emptyState);
 		consumer << provider << provider;
@@ -165,7 +144,7 @@ namespace {
 		consumerChecker.CheckFullState();
 	}
 
-	TEST_F(ResourceContainerFixture, ProvideOperatorTestOut) {
+	TEST_F(ContainerFixture, ProvideOperatorTestOut) {
 		// Check resource transit to consumer with `>>`.
 		consumer.LoadState(emptyState);
 		provider >> consumer >> consumer;
@@ -173,58 +152,50 @@ namespace {
 		consumerChecker.CheckFullState();
 	}
 	
-	TEST_F(ResourceContainerFixture, ProvideLimiterTestIn) {
+	TEST_F(ContainerFixture, ProvideLimiterTestIn) {
 		// Check resource transit through limiter with `<<`.
-		const float frameDelta = 1.f;
-
 		consumer.LoadState(emptyState);
-		consumer << ProvideLimiter(provider, kHalfCapacityAmountKg, frameDelta);
+		consumer << ProvideLimiter(provider, kHalfCapacityAmountKg);
 		providerChecker.CheckHalfState();
 		consumerChecker.CheckHalfState();
 
-		consumer << ProvideLimiter(provider, kHalfCapacityAmountKg, frameDelta);
+		consumer << ProvideLimiter(provider, kHalfCapacityAmountKg);
 		providerChecker.CheckEmptyState();
 		consumerChecker.CheckFullState();
 	}
 
-	TEST_F(ResourceContainerFixture, ProvideLimiterTestOut) {
+	TEST_F(ContainerFixture, ProvideLimiterTestOut) {
 		// Check resource transit through limiter with `>>`.
-		const float frameDelta = 1.f;
-
 		consumer.LoadState(emptyState);
-		ProvideLimiter(provider, kHalfCapacityAmountKg, frameDelta) >> consumer;
+		ProvideLimiter(provider, kHalfCapacityAmountKg) >> consumer;
 		providerChecker.CheckHalfState();
 		consumerChecker.CheckHalfState();
 
-		ProvideLimiter(provider, kHalfCapacityAmountKg, frameDelta) >> consumer;
+		ProvideLimiter(provider, kHalfCapacityAmountKg) >> consumer;
 		providerChecker.CheckEmptyState();
 		consumerChecker.CheckFullState();
 	}
 
-	TEST_F(ResourceContainerFixture, ConsumeLimiterTestIn) {
+	TEST_F(ContainerFixture, ConsumeLimiterTestIn) {
 		// Check resource transit through limiter with `<<`.
-		const float frameDelta = 1.f;
-
 		consumer.LoadState(emptyState);
-		ConsumeLimiter(consumer, kHalfCapacityAmountKg, frameDelta) << provider;
+		ConsumeLimiter(consumer, kHalfCapacityAmountKg) << provider;
 		providerChecker.CheckHalfState();
 		consumerChecker.CheckHalfState();
 
-		ConsumeLimiter(consumer, kHalfCapacityAmountKg, frameDelta) << provider;
+		ConsumeLimiter(consumer, kHalfCapacityAmountKg) << provider;
 		providerChecker.CheckEmptyState();
 		consumerChecker.CheckFullState();
 	}
 
-	TEST_F(ResourceContainerFixture, ConsumeLimiterTestOut) {
+	TEST_F(ContainerFixture, ConsumeLimiterTestOut) {
 		// Check resource transit through limiter with `>>`.
-		const float frameDelta = 1.f;
-
 		consumer.LoadState(emptyState);
-		provider >> ConsumeLimiter(consumer, kHalfCapacityAmountKg, frameDelta);
+		provider >> ConsumeLimiter(consumer, kHalfCapacityAmountKg);
 		providerChecker.CheckHalfState();
 		consumerChecker.CheckHalfState();
 
-		provider >> ConsumeLimiter(consumer, kHalfCapacityAmountKg, frameDelta);
+		provider >> ConsumeLimiter(consumer, kHalfCapacityAmountKg);
 		providerChecker.CheckEmptyState();
 		consumerChecker.CheckFullState();
 	}

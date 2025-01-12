@@ -1,7 +1,7 @@
 // (c) 2024 Acid7Beast. Use with wisdom.
 #pragma once
 
-#include "Flow.h"
+#include "Exchanger.h"
 
 namespace Flow
 {
@@ -11,7 +11,6 @@ namespace Flow
 		// Public nested types.
 	public:
 		using Units = TagSelector<Tag>::Units;
-		using ResourceId = TagSelector<Tag>::ResourceId;
 
 		struct State
 		{
@@ -34,14 +33,13 @@ namespace Flow
 
 		// Public virtual interface substitution.
 	public:
-		// Provider::GetProvidableId
-		inline ResourceId GetProvidableId(Tag tag = {}) const { return mState.originProvider.GetProvidableId(); }
-
 		// Provider::GetAvailableUnits
 		inline Units GetAvailableUnits(Tag tag = {}) const override;
 
+		// Public virtual interface substitution.
+	private:
 		// Provider::ReduceUnits
-		inline void ReduceUnits(Units resourceRequest) override { Flow<Tag>::ReduceUnits(mState.originProvider, resourceRequest); }
+		inline void ReduceUnits(Units resourceRequest) override { Exchanger<Tag>::ReduceUnits(mState.originProvider, resourceRequest); }
 
 		// Private state.
 	private:
@@ -67,7 +65,7 @@ namespace Flow
 	template<typename Tag>
 	Consumer<Tag>& operator<<(Consumer<Tag>& consumer, ProvideLimiter<Tag>&& provider)
 	{
-		Flow<Tag>::Exchange(provider, consumer);
+		Exchanger<Tag>::Exchange(provider, consumer);
 
 		return consumer;
 	}
@@ -75,7 +73,7 @@ namespace Flow
 	template<typename Tag>
 	Provider<Tag>& operator>>(ProvideLimiter<Tag>&& provider, Consumer<Tag>& consumer)
 	{
-		Flow<Tag>::Exchange(provider, consumer);
+		Exchanger<Tag>::Exchange(provider, consumer);
 
 		return provider;
 	}

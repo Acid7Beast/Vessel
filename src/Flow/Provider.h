@@ -11,7 +11,7 @@ namespace Flow
 	class Consumer;
 
 	template<typename Tag>
-	class Flow;
+	class Exchanger;
 
 	template<typename Tag>
 	class Provider
@@ -19,7 +19,6 @@ namespace Flow
 		// Public nested types.
 	public:
 		using Units = TagSelector<Tag>::Units;
-		using ResourceId = TagSelector<Tag>::ResourceId;
 
 		// Life circle.
 	public:
@@ -31,9 +30,6 @@ namespace Flow
 
 		// Public virtual interface.
 	public:
-		// Get providable resource identifiers to work with.
-		virtual ResourceId GetProvidableId(Tag tag = {}) const = 0;
-
 		// Get available resource amount to check possibility to satisfy a request.
 		virtual Units GetAvailableUnits(Tag tag = {}) const = 0;
 
@@ -44,12 +40,12 @@ namespace Flow
 
 		// Private types.
 	private:
-		friend class Flow<Tag>;
+		friend class Exchanger<Tag>;
 	};
 
 	template<typename Tag>
 	inline ExchangeResult Provider<Tag>::Provide(Consumer<Tag>& consumer)
 	{
-		return Flow<Tag>::Exchange(*this, consumer);
+		return Exchanger<Tag>::Exchange(*this, consumer);
 	}
 } // Flow

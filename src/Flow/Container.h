@@ -15,7 +15,6 @@ namespace Flow
 		// Public nested types.
 	public:
 		using Units = TagSelector<Tag>::Units;
-		using ResourceId = TagSelector<Tag>::ResourceId;
 
 		static constexpr Units kZeroUnits = static_cast<Units>(0);
 
@@ -27,12 +26,18 @@ namespace Flow
 		struct Properties
 		{
 			Units capacity = kZeroUnits;
-			ResourceId resourceId;
 		};
 
 		// Life circle.
 	public:
 		inline Container(const Properties& properties);
+
+		inline Container(const Container& other);
+		inline Container(const Container&& other);
+		inline Container& operator=(Container& other);
+		inline void operator=(const Container& other);
+
+		inline ~Container() = default;
 
 		// Public interface.
 	public:
@@ -48,14 +53,11 @@ namespace Flow
 		// Get capacity of this container.
 		inline Units GetCapacity() const { return mProperties.capacity; }
 
+		// Check container for any resources.
+		inline bool IsEmpty() const { return mState.amount > kZeroUnits; }
+
 		// Public virtual interface substitution.
 	public:
-		// Consumer::GetConsumableId
-		inline ResourceId GetConsumableId(Tag tag = {}) const override { return mProperties.resourceId; }
-
-		// Provider::GetProvidableId
-		inline ResourceId GetProvidableId(Tag tag = {}) const override { return mProperties.resourceId; }
-
 		// Consumer::GetRequestUnits
 		inline Units GetRequestUnits(Tag tag = {}) const override { return mProperties.capacity - mState.amount; }
 
@@ -84,6 +86,34 @@ namespace Flow
 		: mProperties{ properties }
 		, mState{ mState.amount = properties.capacity }
 	{
+	}
+
+	template<typename Tag>
+	inline Container<Tag>::Container(const Container<Tag>& other)
+		: mProperties{ other.mProperties }
+	{		
+	}
+
+	template<typename Tag>
+	inline Container<Tag>::Container(const Container&& other)
+		: mProperties{ other.mProperties }
+		, mState{ other.mState }
+	{
+	}
+
+	template<typename Tag>
+	inline Container<Tag>& Container<Tag>::operator=(Container<Tag>& other)
+	{
+		mProperties = other.mProperties;
+		mState.amount = std::min(mState.amount, mProperties.capacity);
+
+		Exchanger<Tag>::Exchange(other, *this);
+	}
+
+	template<typename Tag>
+	inline void Container<Tag>::operator=(const Container<Tag>& other)
+	{
+		mProperties = other.mProperties;
 	}
 
 	template<typename Tag>
