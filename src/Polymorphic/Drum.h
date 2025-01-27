@@ -6,7 +6,7 @@
 #include <numeric>
 #include <deque>
 
-namespace Flow
+namespace Vessel
 {
 	template<class BasicType>
 	class Drum final : public BeltInterface<BasicType>
@@ -156,4 +156,4 @@ namespace Flow
 
 		return result;
 	}
-} // Flow
+} // Vessel

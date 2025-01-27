@@ -6,7 +6,7 @@
 #include "Provider.h"
 #include "Consumer.h"
 
-namespace Flow
+namespace Vessel
 {
 	enum class ExchangeResult : bool
 	{
@@ -101,4 +101,4 @@ namespace Flow
 
 		return provider;
 	}
-} // Flow
+} // Vessel

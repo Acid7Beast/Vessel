@@ -5,7 +5,7 @@
 
 #include <unordered_map>
 
-namespace Flow
+namespace Vessel
 {
 	template<typename Tag>
 	class Package final : public PackageInterface<Tag>
@@ -137,4 +137,4 @@ namespace Flow
 
 		return mContainerItems.at(resourceId);
 	}
-} // Flow
+} // Vessel

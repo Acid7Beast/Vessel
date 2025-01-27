@@ -6,7 +6,7 @@
 #include "Provider.h"
 #include "Consumer.h"
 
-namespace Flow
+namespace Vessel
 {
 	enum class ExchangeResult : bool
 	{
@@ -21,7 +21,7 @@ namespace Flow
 	class ConsumeLimiter;
 
 	template<typename Tag>
-	class Flow final
+	class Vessel final
 	{
 		// Public nested types.
 	public:
@@ -52,7 +52,7 @@ namespace Flow
 	};
 
 	template<typename Tag>
-	inline ExchangeResult Flow<Tag>::Exchange(Provider<Tag>& provider, Consumer<Tag>& consumer)
+	inline ExchangeResult Vessel<Tag>::Exchange(Provider<Tag>& provider, Consumer<Tag>& consumer)
 	{
 		constexpr Units kEpsilonUnits = std::numeric_limits<Units>::epsilon();
 
@@ -77,13 +77,13 @@ namespace Flow
 	}
 
 	template<typename Tag>
-	inline void Flow<Tag>::IncreaseUnits(Consumer<Tag>& consumer, Consumer<Tag>::Units& supply)
+	inline void Vessel<Tag>::IncreaseUnits(Consumer<Tag>& consumer, Consumer<Tag>::Units& supply)
 	{
 		consumer.IncreaseUnits(supply);
 	}
 
 	template<typename Tag>
-	inline void Flow<Tag>::ReduceUnits(Provider<Tag>& provider, Provider<Tag>::Units& request)
+	inline void Vessel<Tag>::ReduceUnits(Provider<Tag>& provider, Provider<Tag>::Units& request)
 	{
 		provider.ReduceUnits(request);
 	}
@@ -91,7 +91,7 @@ namespace Flow
 	template<typename Tag>
 	Consumer<Tag>& operator<<(Consumer<Tag>& consumer, Provider<Tag>& provider)
 	{
-		Flow<Tag>::Exchange(provider, consumer);
+		Vessel<Tag>::Exchange(provider, consumer);
 
 		return consumer;
 	}
@@ -99,8 +99,8 @@ namespace Flow
 	template<typename Tag>
 	Provider<Tag>& operator>>(Provider<Tag>& provider, Consumer<Tag>& consumer)
 	{
-		Flow<Tag>::Exchange(provider, consumer);
+		Vessel<Tag>::Exchange(provider, consumer);
 
 		return provider;
 	}
-} // Flow
+} // Vessel

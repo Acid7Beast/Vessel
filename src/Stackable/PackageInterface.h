@@ -6,7 +6,7 @@
 
 #include <vector>
 
-namespace Flow
+namespace Vessel
 {
 	template<typename Tag>
 	class PackageInterface
@@ -80,4 +80,4 @@ namespace Flow
 	{
 		return Exchange(providerPackage, consumerPackage);
 	}
-} // Flow
+} // Vessel

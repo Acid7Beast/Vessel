@@ -3,7 +3,7 @@
 
 #include "Tag.h"
 
-namespace Flow
+namespace Vessel
 {
 	enum class ExchangeResult : bool;
 
@@ -49,4 +49,4 @@ namespace Flow
 	{
 		return Exchanger<Tag>::Exchange(provider, *this);
 	}
-} // Flow
+} // Vessel

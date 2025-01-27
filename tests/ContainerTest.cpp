@@ -8,7 +8,7 @@
 #include <Stackable/ProvideLimiter.h>
 #include <Stackable/ConsumeLimiter.h>
 
-namespace Flow
+namespace Vessel
 {
 	struct ContainerTestTag {};
 
@@ -20,10 +20,10 @@ namespace Flow
 }
 
 namespace {
-	using Tag = ::Flow::ContainerTestTag;
-	using Container = ::Flow::Container<Tag>;
-	using ProvideLimiter = ::Flow::ProvideLimiter<Tag>;
-	using ConsumeLimiter = ::Flow::ConsumeLimiter<Tag>;
+	using Tag = ::Vessel::ContainerTestTag;
+	using Container = ::Vessel::Container<Tag>;
+	using ProvideLimiter = ::Vessel::ProvideLimiter<Tag>;
+	using ConsumeLimiter = ::Vessel::ConsumeLimiter<Tag>;
 	using Units = Container::Units;
 
 	constexpr Units kEmptyAmountKg = 0.f;

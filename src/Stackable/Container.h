@@ -7,7 +7,7 @@
 #include "Consumer.h"
 #include "Provider.h"
 
-namespace Flow
+namespace Vessel
 {
 	template<typename Tag>
 	class Container final : public Consumer<Tag>, public Provider<Tag>
@@ -135,4 +135,4 @@ namespace Flow
 	{
 		mAmount = std::max(mAmount - resourceRequest, kZeroUnits);
 	}
-} // Flow
+} // Vessel

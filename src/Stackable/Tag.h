@@ -1,8 +1,8 @@
 // (c) 2024 Acid7Beast. Use with wisdom.
 #pragma once
 
-namespace Flow
+namespace Vessel
 {
 	template <typename Tag>
 	struct TagSelector;
-} // Flow
+} // Vessel

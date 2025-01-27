@@ -5,7 +5,7 @@
 #include <memory>
 #include <vector>
 
-namespace Flow
+namespace Vessel
 {
 	template<class BasicType>
 	class SupplyChain;
@@ -126,4 +126,4 @@ namespace Flow
 
 		return feeder;
 	}
-} // Flow
+} // Vessel

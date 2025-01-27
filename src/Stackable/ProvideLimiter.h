@@ -3,7 +3,7 @@
 
 #include "Exchanger.h"
 
-namespace Flow
+namespace Vessel
 {
 	template<typename Tag>
 	class ProvideLimiter final : public Provider<Tag>
@@ -77,4 +77,4 @@ namespace Flow
 
 		return provider;
 	}
-} // Flow
+} // Vessel

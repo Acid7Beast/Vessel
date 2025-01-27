@@ -37,11 +37,11 @@ namespace
 		std::string_view GetType() const override { return kExpansiveType; }
 	};
 
-	using BeltInterface = ::Flow::BeltInterface<Ammo>;
-	using Drum = ::Flow::Drum<Ammo>;
-	using Queue = ::Flow::Queue<Ammo>;
-	using ReferenceWrapper = ::Flow::Drum<Ammo>::ReferenceWrapper;
-	using OptionalRefWrapper = ::Flow::Drum<Ammo>::OptionalRefWrapper;
+	using BeltInterface = ::Vessel::BeltInterface<Ammo>;
+	using Drum = ::Vessel::Drum<Ammo>;
+	using Queue = ::Vessel::Queue<Ammo>;
+	using ReferenceWrapper = ::Vessel::Drum<Ammo>::ReferenceWrapper;
+	using OptionalRefWrapper = ::Vessel::Drum<Ammo>::OptionalRefWrapper;
 
 	class BeltChecker final
 	{

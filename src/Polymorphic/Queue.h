@@ -7,7 +7,7 @@
 #include <deque>
 #include <ranges>
 
-namespace Flow
+namespace Vessel
 {
 	template<class BasicType>
 	class Queue final : public BeltInterface<BasicType>
@@ -126,4 +126,4 @@ namespace Flow
 
 		return result;
 	}
-} // Flow
+} // Vessel

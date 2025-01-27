@@ -3,7 +3,7 @@
 
 #include "PackageInterface.h"
 
-namespace Flow
+namespace Vessel
 {
 	template<typename Tag>
 	class PackageAdapter final : public PackageInterface<Tag>
@@ -57,4 +57,4 @@ namespace Flow
 	{
 		return mAdaptee;
 	}
-} // Flow
+} // Vessel

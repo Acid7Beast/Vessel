@@ -7,7 +7,7 @@
 #include <Stackable/Package.h>
 #include <Stackable/PackageAdapter.h>
 
-namespace Flow
+namespace Vessel
 {
 	struct PackTestTag {};
 
@@ -26,12 +26,12 @@ namespace Flow
 }
 
 namespace {
-	using Tag = ::Flow::PackTestTag;
-	using ResourceId = ::Flow::Package<Tag>::ResourceId;
-	using Container = ::Flow::Container<Tag>;
-	using PackageInterface = ::Flow::PackageInterface<Tag>;
-	using Package = ::Flow::Package<Tag>;
-	using PackageAdapter = ::Flow::PackageAdapter<Tag>;
+	using Tag = ::Vessel::PackTestTag;
+	using ResourceId = ::Vessel::Package<Tag>::ResourceId;
+	using Container = ::Vessel::Container<Tag>;
+	using PackageInterface = ::Vessel::PackageInterface<Tag>;
+	using Package = ::Vessel::Package<Tag>;
+	using PackageAdapter = ::Vessel::PackageAdapter<Tag>;
 	using Units = Package::Units;
 
 	constexpr Units kEmptyAmountKg = 0.f;
