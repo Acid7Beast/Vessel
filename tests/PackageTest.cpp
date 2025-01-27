@@ -4,8 +4,8 @@
 #include <ostream>
 #include <numeric>
 
-#include <Flow/Package.h>
-#include <Flow/PackageAdapter.h>
+#include <Stackable/Package.h>
+#include <Stackable/PackageAdapter.h>
 
 namespace Flow
 {

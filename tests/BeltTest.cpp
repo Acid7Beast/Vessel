@@ -4,8 +4,8 @@
 #include <ostream>
 #include <numeric>
 
-#include <Flow/Drum.h>
-#include <Flow/Queue.h>
+#include <Polymorphic/Drum.h>
+#include <Polymorphic/Queue.h>
 
 namespace
 {
