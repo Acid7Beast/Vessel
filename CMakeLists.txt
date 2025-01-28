@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.20)
 
 # Set the project name and version
-set(PROJECT_NAME Flow)
+set(PROJECT_NAME Vessel)
 project("${PROJECT_NAME}")
 
 # Set C++ standard and flags for compilation
@@ -54,6 +54,9 @@ file(GLOB_RECURSE TEST_SOURCES tests/*.cpp)
 
 # Create test executable for start
 add_executable(${PROJECT_NAME}Test ${TEST_SOURCES} ${TARGET_HEADERS} ${TARGET_SOURCES})
+
+# Add test
+#add_test(NAME ${PROJECT_NAME}Test COMMAND ${PROJECT_SOURCE_DIR}/build/FlowTest)
 
 # Link libraries for test executable
 target_link_libraries(${PROJECT_NAME}Test PRIVATE ${PROJECT_NAME} GTest::gtest GTest::gtest_main)
