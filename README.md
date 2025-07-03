@@ -1,6 +1,6 @@
 # Vessel API: Resource Management System
 
-This document describes the `Vessel` API, a C++ system designed for managing and tracking various **resources** or **units** within **containers** and **packages**. It utilizes a flexible, templated approach, making it adaptable for different resource types and units. The API also supports robust testing, demonstrated by the provided unit test examples.
+This document describes the `Vessel` API, a C++ system designed for managing and tracking various **resources** and **units** within **containers** and **packages** as streams. It utilizes a flexible, templated approach, making it adaptable for different resource types and units. The API also supports robust testing, demonstrated by the provided unit test examples.
 
 ---
 
