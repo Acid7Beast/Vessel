@@ -72,11 +72,11 @@ The provided code examples and tests demonstrate key API interactions.
 
 You can obtain a mutable reference to a specific container within a package using `GetContainer` and then directly modify its `Amount`.
 
-    ```cpp
+```cpp
     // Get the container for Test1 and set its current amount to 0 (empty)
     consumerPackage.GetContainer(ResourceId::Test1).SetAmount(kEmptyAmountKg);
     // This directly manipulates the available units within the container.
-    ```
+```
 
 ### 2.3. Exchanging Resources Between Packages
 
@@ -104,34 +104,34 @@ The `PackageAdapter` is a crucial component that allows a standalone `Container`
 
 Consider this example:
 
-    ```cpp
+```cpp
     // 1. Initialize a provider package with capacities
     Package providerPackage { std::unordered_map<EResource, Package::Units> {
             { EResource::Type1, 255.f}, // Container for EResource::Type1 with 255 units capacity
             { EResource::Type2, 255.f}, // Container for EResource::Type2 with 255 units capacity
         } };
-    ```
+```
 
 // 2. Ensure provider's containers are full (redundant if constructor fills them, but good for clarity)
 
-    ```cpp
+```cpp
     providerPackage.GetContainer(EResource::Type1).SetAmount(255.f);
     providerPackage.GetContainer(EResource::Type2).SetAmount(255.f);
-    ```
+```
 
 // 3. Create a standalone consumer container with its own capacity
 
-    ```cpp
+```cpp
     Package::Container consumerContainer { 255.f }; // This container is currently empty by default (or needs explicit SetAmount(0.f))
-    ```
+```
 
 // 4. Perform a targeted transfer using PackageAdapter
 //    This line transfers only EResource::Type1 from providerPackage into consumerContainer.
 //    The PackageAdapter acts as a temporary bridge, mapping consumerContainer to the Type1 resource.
 
-    ```cpp
+```cpp
     providerPackage >> PackageAdapter(EResource::Type1, consumerContainer);
-    ```
+```
 
 **Breakdown of the `PackageAdapter` transfer:**
 
