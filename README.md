@@ -98,49 +98,60 @@ The API provides convenient overloaded operators (`>>` and `<<`) for transferrin
     // consumerPackage's containers are now empty, providerPackage's are full.
     ```
 
+---
+
+### 2.4. Utilizing `PackageAdapter` for Targeted Transfers
+
+The `PackageAdapter` is a crucial component that allows a standalone `Container` to participate in `Package`-level operations by making it conform to the `PackageInterface`. This is especially useful for targeted resource transfers.
+
 ### 2.4. Utilizing `PackageAdapter` for Targeted Transfers
 
 The `PackageAdapter` is a crucial component that allows a standalone `Container` to participate in `Package`-level operations by making it conform to the `PackageInterface`. This is especially useful for targeted resource transfers.
 
 Consider this example:
 
-```cpp
-    // 1. Initialize a provider package with capacities
+1. **Initialize a provider package with capacities**
+
+    ```cpp
     Package providerPackage { std::unordered_map<EResource, Package::Units> {
-            { EResource::Type1, 255.f}, // Container for EResource::Type1 with 255 units capacity
-            { EResource::Type2, 255.f}, // Container for EResource::Type2 with 255 units capacity
-        } };
-```
+        { EResource::Type1, 255.f }, // Container for EResource::Type1 with 255 units capacity
+        { EResource::Type2, 255.f }, // Container for EResource::Type2 with 255 units capacity
+    } };
+    ```
 
-// 2. Ensure provider's containers are full (redundant if constructor fills them, but good for clarity)
+2. **Ensure provider's containers are full**  
+   *(This is redundant if the constructor fills them, but good for clarity)*
 
-```cpp
+    ```cpp
     providerPackage.GetContainer(EResource::Type1).SetAmount(255.f);
     providerPackage.GetContainer(EResource::Type2).SetAmount(255.f);
-```
+    ```
 
-// 3. Create a standalone consumer container with its own capacity
+3. **Create a standalone consumer container with its own capacity**
 
-```cpp
+    ```cpp
     Package::Container consumerContainer { 255.f }; // This container is currently empty by default (or needs explicit SetAmount(0.f))
-```
+    ```
 
-// 4. Perform a targeted transfer using PackageAdapter
-//    This line transfers only EResource::Type1 from providerPackage into consumerContainer.
-//    The PackageAdapter acts as a temporary bridge, mapping consumerContainer to the Type1 resource.
+4. **Perform a targeted transfer using `PackageAdapter`**  
+   This line transfers only `EResource::Type1` from `providerPackage` into `consumerContainer`.  
+   The `PackageAdapter` acts as a temporary bridge, mapping `consumerContainer` to the `Type1` resource.
 
-```cpp
+    ```cpp
     providerPackage >> PackageAdapter(EResource::Type1, consumerContainer);
-```
+    ```
+
+---
 
 **Breakdown of the `PackageAdapter` transfer:**
 
-* `providerPackage >> ...`: Initiates a transfer *from* `providerPackage`.
-* `PackageAdapter(EResource::Type1, consumerContainer)`: A temporary `PackageAdapter` is created. It wraps `consumerContainer` and declares that this container should be treated as the target for `EResource::Type1`.
-* **Result**:
-    * `providerPackage`'s internal container for `EResource::Type1` will become empty (0 units available).
-    * `providerPackage`'s internal container for `EResource::Type2` remains unaffected (still full with 255 units).
-    * `consumerContainer` will become full (255 units available), having received the `Type1` resource.
+- `providerPackage >> ...`: Initiates a transfer *from* `providerPackage`.
+- `PackageAdapter(EResource::Type1, consumerContainer)`:  
+  A temporary `PackageAdapter` is created. It wraps `consumerContainer` and declares that this container should be treated as the target for `EResource::Type1`.
+- **Result**:
+  - `providerPackage`'s internal container for `EResource::Type1` will become empty (0 units available).
+  - `providerPackage`'s internal container for `EResource::Type2` remains unaffected (still full with 255 units).
+  - `consumerContainer` will become full (255 units available), having received the `Type1` resource.
 
 This demonstrates how `PackageAdapter` enables a single, general-purpose `Container` to interact with a multi-resource `Package` for a specific resource type, acting as a flexible conduit for resource flow.
 
