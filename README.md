@@ -104,10 +104,6 @@ The API provides convenient overloaded operators (`>>` and `<<`) for transferrin
 
 The `PackageAdapter` is a crucial component that allows a standalone `Container` to participate in `Package`-level operations by making it conform to the `PackageInterface`. This is especially useful for targeted resource transfers.
 
-### 2.4. Utilizing `PackageAdapter` for Targeted Transfers
-
-The `PackageAdapter` is a crucial component that allows a standalone `Container` to participate in `Package`-level operations by making it conform to the `PackageInterface`. This is especially useful for targeted resource transfers.
-
 Consider this example:
 
 1. **Initialize a provider package with capacities**
