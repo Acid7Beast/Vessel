@@ -155,3 +155,43 @@ The `Vessel` API's structure makes it suitable for various resource management s
 * **Logistics & Manufacturing**: Modeling stock levels, material flow, or contents of storage units.
 
 ---
+
+## 4. Future Plans and Enhancements
+
+Your proposed plans aim to significantly upgrade the `Vessel` API by leveraging advanced C++ features for better performance, compile-time safety, and developer experience.
+
+### 4.1. Optimize with Static Polymorphism using CRTP
+
+Using the **Curiously Recurring Template Pattern (CRTP)** will enable **static polymorphism**. This means that function calls can be resolved at **compile-time** rather than runtime, eliminating the overhead of virtual function calls associated with dynamic polymorphism.
+
+* **How it helps**:
+    * **Performance**: Reduces runtime overhead, leading to faster execution, especially for frequent operations on `PackageInterface`.
+    * **Optimization**: Allows compilers to perform more aggressive optimizations like inlining, as the exact type is known during compilation.
+
+### 4.2. Apply SBO Optimization, When Possible
+
+**Small Buffer Optimization (SBO)** is a technique typically used for containers (like `std::string` or `std::vector`) to avoid dynamic memory allocation for small objects. If the size of the object (or its contained data) fits within a pre-allocated small buffer on the stack, it prevents a heap allocation, which can be a significant performance win.
+
+* **How it helps**:
+    * **Performance**: Reduces memory allocation overhead, particularly for `Container` or `Package` instances that manage a small number of resources or when their internal data structures are small. This can decrease cache misses and improve overall speed.
+    * **Memory Efficiency**: Avoids heap fragmentation for frequently created small objects.
+
+### 4.3. Add Concepts as Contracts
+
+C++ **Concepts** allow you to define compile-time constraints on template parameters. Applying them as contracts will ensure that any types used with your `Vessel` templates (e.g., for `TagSelector`, `Units`, `ResourceId`) adhere to specific requirements.
+
+* **How it helps**:
+    * **Type Safety**: Guarantees that only valid types are used with your templates, catching errors at **compile-time** rather than runtime.
+    * **Improved Error Messages**: Provides much clearer and more concise error messages to users when they violate type requirements, significantly improving the developer experience.
+    * **User Guidance**: Clearly communicates the expected interfaces and properties of template arguments, serving as built-in documentation.
+
+### 4.4. Make Possible of Compile-Time Usage
+
+Enabling **compile-time usage** means allowing certain operations or resource definitions to be evaluated and fixed during compilation. This often involves using `constexpr` functions and variables, and potentially `std::integral_constant` or similar techniques.
+
+* **How it helps**:
+    * **Performance**: Moves computations from runtime to **compile-time**, resulting in zero-cost abstractions and faster program startup.
+    * **Resource Definition**: Allows resource properties, capacities, or initial states to be immutable and known at compile time, which can simplify some logic and provide stronger guarantees.
+    * **Metaprogramming**: Opens up possibilities for advanced **template metaprogramming** techniques, enabling highly specialized and optimized code generation.
+
+---
