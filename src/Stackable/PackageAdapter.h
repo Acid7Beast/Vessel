@@ -5,13 +5,13 @@
 
 namespace Vessel
 {
-	template<typename Tag>
-	class PackageAdapter final : public PackageInterface<Tag>
+	template<typename ResourceModel>
+	class PackageAdapter final : public PackageInterface<ResourceModel>
 	{
 		// Public nested types.
 	public:
-		using ResourceId = TagSelector<Tag>::ResourceId;
-		using Container = Container<Tag>;
+		using ResourceId = ResourceModel::ResourceId;
+		using Container = Container<ResourceModel>;
 
 		// Life circle.
 	public:
@@ -32,28 +32,28 @@ namespace Vessel
 		Container& mAdaptee;
 	};
 
-	template<typename Tag>
-	inline PackageAdapter<Tag>::PackageAdapter(ResourceId resourceId, Container& adaptee)
-		: PackageInterface<Tag>{}
+	template<typename ResourceModel>
+	inline PackageAdapter<ResourceModel>::PackageAdapter(ResourceId resourceId, Container& adaptee)
+		: PackageInterface<ResourceModel>{}
 		, mResourceId{ resourceId }
 		, mAdaptee{ adaptee }
 	{
 	}
 
-	template<typename Tag>
-	inline std::vector<typename PackageAdapter<Tag>::ResourceId> PackageAdapter<Tag>::GetManagedResourceIds() const
+	template<typename ResourceModel>
+	inline std::vector<typename PackageAdapter<ResourceModel>::ResourceId> PackageAdapter<ResourceModel>::GetManagedResourceIds() const
 	{
 		return { mResourceId };
 	}
 
-	template<typename Tag>
-	inline PackageAdapter<Tag>::Container& PackageAdapter<Tag>::GetContainer(ResourceId resourceId)
+	template<typename ResourceModel>
+	inline PackageAdapter<ResourceModel>::Container& PackageAdapter<ResourceModel>::GetContainer(ResourceId resourceId)
 	{
 		return mAdaptee;
 	}
 
-	template<typename Tag>
-	inline const PackageAdapter<Tag>::Container& PackageAdapter<Tag>::GetContainer(ResourceId resourceId) const
+	template<typename ResourceModel>
+	inline const PackageAdapter<ResourceModel>::Container& PackageAdapter<ResourceModel>::GetContainer(ResourceId resourceId) const
 	{
 		return mAdaptee;
 	}

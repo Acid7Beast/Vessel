@@ -8,23 +8,24 @@
 #include <Stackable/ProvideLimiter.h>
 #include <Stackable/ConsumeLimiter.h>
 
-namespace Vessel
-{
-	struct ContainerTestTag {};
+namespace {
+	enum class TestResource : uint8_t
+	{
+		Test1,
+		Test2,
+		Count,
+	};
 
-	// Specialize for Test.
-	template <>
-	struct TagSelector<ContainerTestTag> {
+	struct ContainerTestTag {
+		using ResourceId = TestResource;
 		using Units = float;
 	};
-}
 
-namespace {
-	using Tag = ::Vessel::ContainerTestTag;
-	using Container = ::Vessel::Container<Tag>;
-	using ProvideLimiter = ::Vessel::ProvideLimiter<Tag>;
-	using ConsumeLimiter = ::Vessel::ConsumeLimiter<Tag>;
-	using Units = Container::Units;
+	using KgResourceModel = ::Vessel::ResourceModel<ContainerTestTag>;
+	using Container = ::Vessel::Container<KgResourceModel>;
+	using ProvideLimiter = ::Vessel::ProvideLimiter<KgResourceModel>;
+	using ConsumeLimiter = ::Vessel::ConsumeLimiter<KgResourceModel>;
+	using Units = KgResourceModel::Units;
 
 	constexpr Units kEmptyAmountKg = 0.f;
 	constexpr Units kCapacityAmountKg = 255.f;

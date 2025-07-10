@@ -5,23 +5,23 @@
 
 namespace Vessel
 {
-	template <typename Tag>
-	class ConsumeLimiter final : public Consumer<Tag>
+	template <typename ResourceModel>
+	class ConsumeLimiter final : public Consumer<ResourceModel>
 	{
 		// Public nested types.
 	public:
-		using Units = TagSelector<Tag>::Units;
+		using Units = ResourceModel::Units;
 
 		struct State
 		{
 			Units buffer;
 			float bandwidth;
-			Consumer<Tag>& originConsumer;
+			Consumer<ResourceModel>& originConsumer;
 		};
 
 		// Life circle.
 	public:
-		inline ConsumeLimiter(Consumer<Tag>& originConsumer, Units buffer, float bandwidth = 1.f);
+		inline ConsumeLimiter(Consumer<ResourceModel>& originConsumer, Units buffer, float bandwidth = 1.f);
 
 		// Public interface.
 	public:
@@ -34,27 +34,27 @@ namespace Vessel
 		// Public virtual interface substitution.
 	public:
 		// Consumer::GetRequestUnits
-		inline Units GetRequestUnits(Tag tag = {}) const override;
+		inline Units GetRequestUnits(ResourceModel model = {}) const override;
 
 		// Private virtual interface substitution.
 	private:
 		// Consumer::IncreaseUnits
-		inline void IncreaseUnits(Units resourceRequest) override { Exchanger<Tag>::IncreaseUnits(mState.originConsumer, resourceRequest); }
+		inline void IncreaseUnits(Units resourceRequest) override { Exchanger<ResourceModel>::IncreaseUnits(mState.originConsumer, resourceRequest); }
 
 		// Private state.
 	private:
 		State mState;
 	};
 
-	template<typename Tag>
-	inline ConsumeLimiter<Tag>::ConsumeLimiter(Consumer<Tag>& originConsumer, ConsumeLimiter::Units buffer, float bandwidth)
-		: Consumer<Tag>{}
+	template<typename ResourceModel>
+	inline ConsumeLimiter<ResourceModel>::ConsumeLimiter(Consumer<ResourceModel>& originConsumer, ConsumeLimiter::Units buffer, float bandwidth)
+		: Consumer<ResourceModel>{}
 		, mState{ bandwidth, buffer, originConsumer }
 	{
 	}
 
-	template<typename Tag>
-	inline ConsumeLimiter<Tag>::Units ConsumeLimiter<Tag>::GetRequestUnits(Tag tag) const
+	template<typename ResourceModel>
+	inline ConsumeLimiter<ResourceModel>::Units ConsumeLimiter<ResourceModel>::GetRequestUnits(ResourceModel ResourceModel) const
 	{
 		const Units possibleUnits = static_cast<Units>(mState.buffer * mState.bandwidth);
 		const Units availableUnits = mState.originConsumer.GetRequestUnits();
@@ -62,18 +62,18 @@ namespace Vessel
 		return std::min(availableUnits, possibleUnits);
 	}
 
-	template<typename Tag>
-	Provider<Tag>& operator>>(Provider<Tag>& provider, ConsumeLimiter<Tag>&& consumer)
+	template<typename ResourceModel>
+	Provider<ResourceModel>& operator>>(Provider<ResourceModel>& provider, ConsumeLimiter<ResourceModel>&& consumer)
 	{
-		Exchanger<Tag>::Exchange(provider, consumer);
+		Exchanger<ResourceModel>::Exchange(provider, consumer);
 
 		return provider;
 	}
 
-	template<typename Tag>
-	Consumer<Tag>& operator<<(ConsumeLimiter<Tag>&& consumer, Provider<Tag>& provider)
+	template<typename ResourceModel>
+	Consumer<ResourceModel>& operator<<(ConsumeLimiter<ResourceModel>&& consumer, Provider<ResourceModel>& provider)
 	{
-		Exchanger<Tag>::Exchange(provider, consumer);
+		Exchanger<ResourceModel>::Exchange(provider, consumer);
 
 		return consumer;
 	}

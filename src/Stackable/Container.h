@@ -9,12 +9,12 @@
 
 namespace Vessel
 {
-	template<typename Tag>
-	class Container final : public Consumer<Tag>, public Provider<Tag>
+	template<typename ResourceModel>
+	class Container final : public Consumer<ResourceModel>, public Provider<ResourceModel>
 	{
 		// Public nested types.
 	public:
-		using Units = TagSelector<Tag>::Units;
+		using Units = ResourceModel::Units;
 
 		static constexpr Units kZeroUnits = static_cast<Units>(0);
 
@@ -31,10 +31,10 @@ namespace Vessel
 
 		// Public interface.
 	public:
-		// Deserialize state of this resource container for a save.
+		// Deserialize state of this resource container from a save.
 		inline void SetAmount(Units amount);
 
-		// Serialize state of this resource container from a save. 
+		// Serialize state of this resource container to a save. 
 		inline Units GetAmount() const;
 
 		// Reset state of this resource container to default values.
@@ -49,10 +49,10 @@ namespace Vessel
 		// Public virtual interface substitution.
 	public:
 		// Consumer::GetRequestUnits
-		inline Units GetRequestUnits(Tag tag = {}) const override { return mCapacity - mAmount; }
+		inline Units GetRequestUnits(ResourceModel model = {}) const override { return mCapacity - mAmount; }
 
 		// Provider::GetAvailableUnits
-		inline Units GetAvailableUnits(Tag tag = {}) const override { return mAmount; }
+		inline Units GetAvailableUnits(ResourceModel model = {}) const override { return mAmount; }
 
 		// Private virtual interface substitution.
 	private:
@@ -71,67 +71,67 @@ namespace Vessel
 		const Units mCapacity;
 	};
 
-	template<typename Tag>
-	inline Container<Tag>::Container(Container<Tag>::Units capacity)
+	template<typename ResourceModel>
+	inline Container<ResourceModel>::Container(Container<ResourceModel>::Units capacity)
 		: mCapacity{ capacity }
 		, mAmount{ capacity }
 	{
 	}
 
-	template<typename Tag>
-	inline Container<Tag>::Container(const Container<Tag>& other)
+	template<typename ResourceModel>
+	inline Container<ResourceModel>::Container(const Container<ResourceModel>& other)
 		: mCapacity{ other.mCapacity }
 	{		
 	}
 
-	template<typename Tag>
-	inline Container<Tag>::Container(const Container&& other)
+	template<typename ResourceModel>
+	inline Container<ResourceModel>::Container(const Container&& other)
 		: mCapacity{ other.mCapacity }
 		, mAmount{ other.mAmount }
 	{
 	}
 
-	template<typename Tag>
-	inline Container<Tag>& Container<Tag>::operator=(Container<Tag>& other)
+	template<typename ResourceModel>
+	inline Container<ResourceModel>& Container<ResourceModel>::operator=(Container<ResourceModel>& other)
 	{
 		mCapacity = other.mCapacity;
 		mAmount = std::min(mAmount, mCapacity);
 
-		Exchanger<Tag>::Exchange(other, *this);
+		Exchanger<ResourceModel>::Exchange(other, *this);
 	}
 
-	template<typename Tag>
-	inline void Container<Tag>::operator=(const Container<Tag>& other)
+	template<typename ResourceModel>
+	inline void Container<ResourceModel>::operator=(const Container<ResourceModel>& other)
 	{
 		mCapacity = other.mCapacity;
 	}
 
-	template<typename Tag>
-	inline void Container<Tag>::SetAmount(Units amount)
+	template<typename ResourceModel>
+	inline void Container<ResourceModel>::SetAmount(Units amount)
 	{
 		mAmount = amount;
 	}
 
-	template<typename Tag>
-	inline Container<Tag>::Units Container<Tag>::GetAmount() const
+	template<typename ResourceModel>
+	inline Container<ResourceModel>::Units Container<ResourceModel>::GetAmount() const
 	{
 		return mAmount;
 	}
 
-	template<typename Tag>
-	inline void Container<Tag>::ResetState()
+	template<typename ResourceModel>
+	inline void Container<ResourceModel>::ResetState()
 	{
 		mAmount = kZeroUnits;
 	}
 
-	template<typename Tag>
-	inline void Container<Tag>::IncreaseUnits(Units resourceSupply)
+	template<typename ResourceModel>
+	inline void Container<ResourceModel>::IncreaseUnits(Units resourceSupply)
 	{
 		mAmount = std::min(mAmount + resourceSupply, mCapacity);
 	}
 
-	template<typename Tag>
-	inline void Container<Tag>::ReduceUnits(Units resourceRequest)
+	template<typename ResourceModel>
+	inline void Container<ResourceModel>::ReduceUnits(Units resourceRequest)
 	{
 		mAmount = std::max(mAmount - resourceRequest, kZeroUnits);
 	}

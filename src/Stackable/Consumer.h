@@ -7,18 +7,18 @@ namespace Vessel
 {
 	enum class ExchangeResult : bool;
 
-	template<typename Tag>
+	template<typename ResourceModel>
 	class Provider;
 
-	template<typename Tag>
+	template<typename ResourceModel>
 	class Exchanger;
 
-	template<typename Tag>
+	template<typename ResourceModel>
 	class Consumer
 	{
 		// Public nested types.
 	public:
-		using Units = TagSelector<Tag>::Units;
+		using Units = ResourceModel::Units;
 
 		// Life circle.
 	public:
@@ -27,12 +27,12 @@ namespace Vessel
 		// Public interface.
 	public:
 		// Consume resource from the provider.
-		ExchangeResult Consume(Provider<Tag>& provider);
+		ExchangeResult Consume(Provider<ResourceModel>& provider);
 
 		// Public virtual interface.
 	public:
 		// Requested resource amount needed to fulfill all the needs of this consumer.
-		virtual Units GetRequestUnits(Tag tag = {}) const = 0;
+		virtual Units GetRequestUnits(ResourceModel model = {}) const = 0;
 
 		// Inheritable virtual interface.
 	protected:
@@ -41,12 +41,12 @@ namespace Vessel
 
 		// Private types.
 	private:
-		friend class Exchanger<Tag>;
+		friend class Exchanger<ResourceModel>;
 	};
 
-	template<typename Tag>
-	inline ExchangeResult Consumer<Tag>::Consume(Provider<Tag>& provider)
+	template<typename ResourceModel>
+	inline ExchangeResult Consumer<ResourceModel>::Consume(Provider<ResourceModel>& provider)
 	{
-		return Exchanger<Tag>::Exchange(provider, *this);
+		return Exchanger<ResourceModel>::Exchange(provider, *this);
 	}
 } // Vessel

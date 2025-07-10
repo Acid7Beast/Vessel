@@ -7,14 +7,14 @@
 
 namespace Vessel
 {
-	template<typename Tag>
-	class Package final : public PackageInterface<Tag>
+	template<typename ResourceModel>
+	class Package final : public PackageInterface<ResourceModel>
 	{
 		// Public nested types.
 	public:
-		using Units = TagSelector<Tag>::Units;
-		using ResourceId = TagSelector<Tag>::ResourceId;
-		using Container = Container<Tag>;
+		using Units = ResourceModel::Units;
+		using ResourceId = ResourceModel::ResourceId;
+		using Container = Container<ResourceModel>;
 		using ContainerPropertiesTable = std::unordered_map<ResourceId, Units>;
 		using ContainerStateTable = std::unordered_map<ResourceId, Units>;
 
@@ -53,16 +53,16 @@ namespace Vessel
 		const ContainerPropertiesTable& mContainerProperties;
 	};
 
-	template<typename Tag>
-	inline Package<Tag>::Package(const Package<Tag>::ContainerPropertiesTable& containerProperties)
-		: PackageInterface<Tag>{}
+	template<typename ResourceModel>
+	inline Package<ResourceModel>::Package(const Package<ResourceModel>::ContainerPropertiesTable& containerProperties)
+		: PackageInterface<ResourceModel>{}
 		, mContainerProperties{ containerProperties }
 	{
 		ResetState();
 	}
 
-	template<typename Tag>
-	inline void Package<Tag>::LoadState(const Package<Tag>::ContainerStateTable& containerStates)
+	template<typename ResourceModel>
+	inline void Package<ResourceModel>::LoadState(const Package<ResourceModel>::ContainerStateTable& containerStates)
 	{
 		mContainerItems.clear();
 		for (auto& [resourceId, capacity] : mContainerProperties)
@@ -76,8 +76,8 @@ namespace Vessel
 		}
 	}
 
-	template<typename Tag>
-	inline void Package<Tag>::SaveState(Package<Tag>::ContainerStateTable& containerStates) const
+	template<typename ResourceModel>
+	inline void Package<ResourceModel>::SaveState(Package<ResourceModel>::ContainerStateTable& containerStates) const
 	{
 		for (const auto& [resourceId, container] : mContainerItems)
 		{
@@ -85,8 +85,8 @@ namespace Vessel
 		}
 	}
 
-	template<typename Tag>
-	inline void Package<Tag>::ResetState()
+	template<typename ResourceModel>
+	inline void Package<ResourceModel>::ResetState()
 	{
 		mContainerItems.clear();
 		for (auto& [resourceId, properties] : mContainerProperties)
@@ -95,8 +95,8 @@ namespace Vessel
 		}
 	}
 
-	template<typename Tag>
-	inline std::vector<typename Package<Tag>::ResourceId> Package<Tag>::GetManagedResourceIds() const
+	template<typename ResourceModel>
+	inline std::vector<typename Package<ResourceModel>::ResourceId> Package<ResourceModel>::GetManagedResourceIds() const
 	{
 		std::vector<ResourceId> result;
 
@@ -112,8 +112,8 @@ namespace Vessel
 		return result;
 	}
 
-	template<typename Tag>
-	inline Package<Tag>::Container& Package<Tag>::GetContainer(ResourceId resourceId)
+	template<typename ResourceModel>
+	inline Package<ResourceModel>::Container& Package<ResourceModel>::GetContainer(ResourceId resourceId)
 	{
 		static Container kEmptyItem{ kZeroUnits };
 
@@ -125,8 +125,8 @@ namespace Vessel
 		return mContainerItems.at(resourceId);
 	}
 
-	template<typename Tag>
-	inline const Package<Tag>::Container& Package<Tag>::GetContainer(ResourceId resourceId) const
+	template<typename ResourceModel>
+	inline const Package<ResourceModel>::Container& Package<ResourceModel>::GetContainer(ResourceId resourceId) const
 	{
 		static Container kEmptyItem{ kZeroUnits };
 

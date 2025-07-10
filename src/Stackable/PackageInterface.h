@@ -8,13 +8,13 @@
 
 namespace Vessel
 {
-	template<typename Tag>
+	template<typename ResourceModel>
 	class PackageInterface
 	{
 		// Public nested types.
 	public:
-		using ResourceId = TagSelector<Tag>::ResourceId;
-		using Container = Container<Tag>;
+		using ResourceId = ResourceModel::ResourceId;
+		using Container = Container<ResourceModel>;
 
 		// Life circle.
 	public:
@@ -30,53 +30,53 @@ namespace Vessel
 		virtual const Container& GetContainer(ResourceId resourceId) const = 0;
 	};
 
-	template<typename Tag>
-	PackageInterface<Tag>& Exchange(PackageInterface<Tag>& providerPackage, PackageInterface<Tag>& consumerPackage)
+	template<typename ResourceModel>
+	PackageInterface<ResourceModel>& Exchange(PackageInterface<ResourceModel>& providerPackage, PackageInterface<ResourceModel>& consumerPackage)
 	{
-		for (typename Package<Tag>::ResourceId resourceId : consumerPackage.GetManagedResourceIds())
+		for (typename Package<ResourceModel>::ResourceId resourceId : consumerPackage.GetManagedResourceIds())
 		{
-			Container<Tag>& providerContainer = providerPackage.GetContainer(resourceId);
-			Container<Tag>& consumerContainer = consumerPackage.GetContainer(resourceId);
+			Container<ResourceModel>& providerContainer = providerPackage.GetContainer(resourceId);
+			Container<ResourceModel>& consumerContainer = consumerPackage.GetContainer(resourceId);
 
-			Exchanger<Tag>::Exchange(providerContainer, consumerContainer);
+			Exchanger<ResourceModel>::Exchange(providerContainer, consumerContainer);
 		}
 
 		return providerPackage;
 	}
 
-	template<typename Tag>
-	PackageInterface<Tag>& operator>>(PackageInterface<Tag>& providerPackage, PackageInterface<Tag>& consumerPackage)
+	template<typename ResourceModel>
+	PackageInterface<ResourceModel>& operator>>(PackageInterface<ResourceModel>& providerPackage, PackageInterface<ResourceModel>& consumerPackage)
 	{
 		return Exchange(providerPackage, consumerPackage);
 	}
 
-	template<typename Tag>
-	PackageInterface<Tag>& operator<<(PackageInterface<Tag>& consumerPackage, PackageInterface<Tag>& providerPackage)
+	template<typename ResourceModel>
+	PackageInterface<ResourceModel>& operator<<(PackageInterface<ResourceModel>& consumerPackage, PackageInterface<ResourceModel>& providerPackage)
 	{
 		return Exchange(providerPackage, consumerPackage);
 	}
 
-	template<typename Tag>
-	PackageInterface<Tag>& operator>>(PackageInterface<Tag>&& providerPackage, PackageInterface<Tag>& consumerPackage)
+	template<typename ResourceModel>
+	PackageInterface<ResourceModel>& operator>>(PackageInterface<ResourceModel>&& providerPackage, PackageInterface<ResourceModel>& consumerPackage)
 	{
 		return Exchange(providerPackage, consumerPackage);
 	}
 	
 
-	template<typename Tag>
-	PackageInterface<Tag>& operator>>(PackageInterface<Tag>& providerPackage, PackageInterface<Tag>&& consumerPackage)
+	template<typename ResourceModel>
+	PackageInterface<ResourceModel>& operator>>(PackageInterface<ResourceModel>& providerPackage, PackageInterface<ResourceModel>&& consumerPackage)
 	{
 		return Exchange(providerPackage, consumerPackage);
 	}
 
-	template<typename Tag>
-	PackageInterface<Tag>& operator<<(PackageInterface<Tag>&& consumerPackage, PackageInterface<Tag>& providerPackage)
+	template<typename ResourceModel>
+	PackageInterface<ResourceModel>& operator<<(PackageInterface<ResourceModel>&& consumerPackage, PackageInterface<ResourceModel>& providerPackage)
 	{
 		return Exchange(providerPackage, consumerPackage);
 	}
 
-	template<typename Tag>
-	PackageInterface<Tag>& operator<<(PackageInterface<Tag>& consumerPackage, PackageInterface<Tag>&& providerPackage)
+	template<typename ResourceModel>
+	PackageInterface<ResourceModel>& operator<<(PackageInterface<ResourceModel>& consumerPackage, PackageInterface<ResourceModel>&& providerPackage)
 	{
 		return Exchange(providerPackage, consumerPackage);
 	}

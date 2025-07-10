@@ -7,38 +7,33 @@
 #include <Stackable/Package.h>
 #include <Stackable/PackageAdapter.h>
 
-namespace Vessel
-{
-	struct PackTestTag {};
-
-	enum class TestResource : uint8_t
-	{
-		Test1,
-		Test2,
-	};
-
-	// Specialize for Test.
-	template <>
-	struct TagSelector<PackTestTag> {
-		using Units = float;
-		using ResourceId = TestResource;
-	};
-}
-
 namespace {
-	using Tag = ::Vessel::PackTestTag;
-	using ResourceId = ::Vessel::Package<Tag>::ResourceId;
-	using Container = ::Vessel::Container<Tag>;
-	using PackageInterface = ::Vessel::PackageInterface<Tag>;
-	using Package = ::Vessel::Package<Tag>;
-	using PackageAdapter = ::Vessel::PackageAdapter<Tag>;
-	using Units = Package::Units;
+
+	struct PackTestTag
+	{
+		using Units = float;
+
+		enum class ResourceId : uint8_t
+		{
+			Test1,
+			Test2,
+			Count,
+		};
+	};
+
+	using KgResourceModel = ::Vessel::ResourceModel<PackTestTag>;
+	using ResourceId = KgResourceModel::ResourceId;
+	using Units = KgResourceModel::Units;
+	using PackageInterface = ::Vessel::PackageInterface<KgResourceModel>;
+	using Package = ::Vessel::Package<KgResourceModel>;
+	using PackageAdapter = ::Vessel::PackageAdapter<KgResourceModel>;
+	using Container = ::Vessel::Container<KgResourceModel>;
 
 	constexpr Units kEmptyAmountKg = 0.f;
 	constexpr Units kCapacityAmountKg = 255.f;
 	constexpr Units kHalfCapacityAmountKg = kCapacityAmountKg * 0.5f;
 
-	static const std::unordered_map<ResourceId, Package::Units> kContainerProperties
+	static const std::unordered_map<ResourceId, Units> kContainerProperties
 	{
 		{ ResourceId::Test1, kCapacityAmountKg},
 		{ ResourceId::Test2, kCapacityAmountKg},

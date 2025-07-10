@@ -14,32 +14,32 @@ namespace Vessel
 		Changed = true,
 	};
 
-	template<typename Tag>
+	template<typename ResourceModel>
 	class ProvideLimiter;
 
-	template<typename Tag>
+	template<typename ResourceModel>
 	class ConsumeLimiter;
 
-	template<typename Tag>
+	template<typename ResourceModel>
 	class Package;
 
-	template<typename Tag>
+	template<typename ResourceModel>
 	class Exchanger final
 	{
 		// Public nested types.
 	public:
-		using Units = TagSelector<Tag>::Units;
+		using Units = ResourceModel::Units;
 
 		// Public static interface.
 	public:
 		// Supply the consumer requested needs from the provider.
-		static ExchangeResult Exchange(Provider<Tag>& provider, Consumer<Tag>& consumer);
+		static ExchangeResult Exchange(Provider<ResourceModel>& provider, Consumer<ResourceModel>& consumer);
 
 		// Private friend.
 	private:
-		friend ProvideLimiter<Tag>;
-		friend ConsumeLimiter<Tag>;
-		friend Package<Tag>;
+		friend ProvideLimiter<ResourceModel>;
+		friend ConsumeLimiter<ResourceModel>;
+		friend Package<ResourceModel>;
 
 		// Private constants.
 	public:
@@ -48,14 +48,14 @@ namespace Vessel
 		// Private static interface.
 	private:
 		// Increase resource.
-		static void IncreaseUnits(Consumer<Tag>& consumer, Consumer<Tag>::Units& supply);
+		static void IncreaseUnits(Consumer<ResourceModel>& consumer, Consumer<ResourceModel>::Units& supply);
 
 		// Reduce resource.
-		static void ReduceUnits(Provider<Tag>& provider, Provider<Tag>::Units& request);
+		static void ReduceUnits(Provider<ResourceModel>& provider, Provider<ResourceModel>::Units& request);
 	};
 
-	template<typename Tag>
-	inline ExchangeResult Exchanger<Tag>::Exchange(Provider<Tag>& provider, Consumer<Tag>& consumer)
+	template<typename ResourceModel>
+	inline ExchangeResult Exchanger<ResourceModel>::Exchange(Provider<ResourceModel>& provider, Consumer<ResourceModel>& consumer)
 	{
 		constexpr Units kEpsilonUnits = std::numeric_limits<Units>::epsilon();
 
@@ -74,30 +74,30 @@ namespace Vessel
 		return ExchangeResult::Changed;
 	}
 
-	template<typename Tag>
-	inline void Exchanger<Tag>::IncreaseUnits(Consumer<Tag>& consumer, Consumer<Tag>::Units& supply)
+	template<typename ResourceModel>
+	inline void Exchanger<ResourceModel>::IncreaseUnits(Consumer<ResourceModel>& consumer, Consumer<ResourceModel>::Units& supply)
 	{
 		consumer.IncreaseUnits(supply);
 	}
 
-	template<typename Tag>
-	inline void Exchanger<Tag>::ReduceUnits(Provider<Tag>& provider, Provider<Tag>::Units& request)
+	template<typename ResourceModel>
+	inline void Exchanger<ResourceModel>::ReduceUnits(Provider<ResourceModel>& provider, Provider<ResourceModel>::Units& request)
 	{
 		provider.ReduceUnits(request);
 	}
 
-	template<typename Tag>
-	Consumer<Tag>& operator<<(Consumer<Tag>& consumer, Provider<Tag>& provider)
+	template<typename ResourceModel>
+	Consumer<ResourceModel>& operator<<(Consumer<ResourceModel>& consumer, Provider<ResourceModel>& provider)
 	{
-		Exchanger<Tag>::Exchange(provider, consumer);
+		Exchanger<ResourceModel>::Exchange(provider, consumer);
 
 		return consumer;
 	}
 
-	template<typename Tag>
-	Provider<Tag>& operator>>(Provider<Tag>& provider, Consumer<Tag>& consumer)
+	template<typename ResourceModel>
+	Provider<ResourceModel>& operator>>(Provider<ResourceModel>& provider, Consumer<ResourceModel>& consumer)
 	{
-		Exchanger<Tag>::Exchange(provider, consumer);
+		Exchanger<ResourceModel>::Exchange(provider, consumer);
 
 		return provider;
 	}
