@@ -3,7 +3,7 @@
 
 #include <algorithm>
 
-#include "Tag.h"
+#include "ResourceModel.h"
 #include "Consumer.h"
 #include "Provider.h"
 

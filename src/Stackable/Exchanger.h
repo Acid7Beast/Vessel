@@ -1,7 +1,7 @@
 // (c) 2024 Acid7Beast. Use with wisdom.
 #pragma once
 
-#include "Tag.h"
+#include "ResourceModel.h"
 
 #include "Provider.h"
 #include "Consumer.h"
