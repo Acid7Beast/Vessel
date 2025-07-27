@@ -1,110 +1,303 @@
 ﻿// (c) 2024 Acid7Beast. Use with wisdom.
 #pragma once
 
-#include "PackageInterface.h"
+#include "ResourceModel.h"
+#include "Transfer.h"
 
 #include <unordered_map>
+#include <array>
 
 namespace Vessel
 {
-	template<typename ResourceModel>
-	class Package final : public PackageInterface<ResourceModel>
+	/**
+	* Package represents a container of resources that can be Transferd between other packages.
+	*
+	* Requirements:
+	* - Package specialization required specialization of ResourceModel.
+	* - Package can be constructed only with a table of capacities, which defines the maximum amount of units for each resource.
+	*
+	* Aliases:
+	* - Units - type of units in the package.
+	* - ResourceId - type of resource enum identifier in the package.
+	* - Transfer - type of Transfer for this package.
+	* - ResourceTable - type of table that defines the current amount for each resource.
+	*
+	* Constants:
+	* - kResourceCount - constant that defines how many resources can be managed by this package.
+	* - kAvailableBytes - constant that defines available bytes for storing amount of resources in cache line, excluding reference to capacity table.
+	* - kUseSBO - constant that defines whether to use small buffer optimization (SBO) for this package.
+	*/
+	template<typename Model>
+	class Package final
 	{
 		// Public nested types.
 	public:
-		using Units = ResourceModel::Units;
-		using ResourceId = ResourceModel::ResourceId;
-		using Container = Container<ResourceModel>;
-		using ContainerPropertiesTable = std::unordered_map<ResourceId, Units>;
-		using ContainerStateTable = std::unordered_map<ResourceId, Units>;
+		using Units = Model::Units;
+		using ResourceId = Model::ResourceId;
+		using Transfer = Transfer<Model>;
+		using Container = Container<Model>;
 
-		static constexpr Units kZeroUnits = static_cast<Units>(0);
+		template<size_t Count> using ArrayType = std::array<Units, Count>;
+		using ResourceTable = std::unordered_map<ResourceId, Units>;
 
-		// Life circle.
+		// Public life cycle.
 	public:
-		inline Package(const ContainerPropertiesTable& containerProperties);
+		// Construct empty package with a table of capacities using SBO optimization.
+		inline Package(const ResourceTable& containerProperties);
+
+		// Copy table of capacities and stole resource from another package.
+		inline Package(Package& other) noexcept;
+
+		// Stole resources from another package as many as fit to capacities.
+		inline Package& operator=(Package& other) noexcept;
+
+		// Copy table of capacities and stole resources from other package on constructing.
+		inline Package(Package&& other) noexcept;
+
+		// Stole resources from other package on assignment as many as fit to capacities.
+		inline Package& operator=(Package&& other) noexcept;
+
+		// Destroy containers using SBO optimization.
+		inline ~Package();
 
 		// Public interface.
 	public:
 		// Deserialize state of this resource package for a save.
-		inline void LoadState(const ContainerStateTable& containerStates);
+		inline void LoadState(const ResourceTable& containerStates);
 
 		// Serialize state of this resource package from a save. 
-		inline void SaveState(ContainerStateTable& containerStates) const;
+		inline void SaveState(ResourceTable& containerStates) const;
 
 		// Reset state of this resource package to default values.
 		inline void ResetState();
 
-		// Public virtual interface substitution.
-	public:
-		// Get list of managed resources.
-		inline std::vector<ResourceId> GetManagedResourceIds() const override;
+		// Count required units to fill the package.
+		inline Units GetRequestedUnits(ResourceId resourceId) const;
 
-		// Get readonly with resources by resource id.
-		inline Container& GetContainer(ResourceId resourceId) override;
-		inline const Container& GetContainer(ResourceId resourceId) const override;
+		// Count available units in the package.
+		inline Units GetAvailableUnits(ResourceId resourceId) const;
+
+		// Get list of managed resources.
+		inline std::vector<ResourceId> GetManagedResourceIds() const;
+
+		// Fried classes.
+	public:
+		friend class Transfer;
+
+		// Private constants.
+	private:
+		// Available bytes for storing amount of resources in cache line, excluding reference to capacity table.
+		static constexpr size_t kAvailableBytes = 64 - sizeof(void*);
+
+		// Use small buffer optimization (SBO) if resource count is smaller than ResourceTable.
+		static constexpr bool kUseSBO = (Model::kResourceCount <= (kAvailableBytes / sizeof(Units)));
+
+		// CT checks.
+	private:
+		static_assert(IsSpecializationOf<Model, ResourceModel>::value, "Package<T>: Model must be specialization of ResourceModel<Tag>.");
+
+		// Private interface.
+	private:
+		// Access resource by SBO flag.
+		Units& AccessResource(ResourceId id);
+		Units AccessResource(ResourceId id) const;
+
+		// Increase amount of units in the package.
+		inline void IncreaseUnits(ResourceId resourceId, Units amount);
+
+		// Decrease amount of units in the package.
+		inline void DecreaseUnits(ResourceId resourceId, Units amount);
 
 		// Private state.
 	private:
-		std::unordered_map<ResourceId, Container> mContainerItems;
+		union {
+			ArrayType<Model::kResourceCount> mArray;
+			ResourceTable mMap;
+		};
 
 		// Private properties.
 	private:
-		const ContainerPropertiesTable& mContainerProperties;
+		const ResourceTable& mContainerProperties;
 	};
 
-	template<typename ResourceModel>
-	inline Package<ResourceModel>::Package(const Package<ResourceModel>::ContainerPropertiesTable& containerProperties)
-		: PackageInterface<ResourceModel>{}
-		, mContainerProperties{ containerProperties }
+	template<typename Model>
+	inline Package<Model>::Package(const Package<Model>::ResourceTable& containerProperties)
+		: mContainerProperties{ containerProperties }
 	{
+		if constexpr (kUseSBO)
+		{
+			std::construct_at(&mArray);
+		}
+		else
+		{
+			std::construct_at(&mMap);
+		}
+
 		ResetState();
 	}
 
-	template<typename ResourceModel>
-	inline void Package<ResourceModel>::LoadState(const Package<ResourceModel>::ContainerStateTable& containerStates)
+	template<typename Model>
+	inline Package<Model>::Package(Package& other) noexcept
+		: mContainerProperties{ other.mContainerProperties }
 	{
-		mContainerItems.clear();
-		for (auto& [resourceId, capacity] : mContainerProperties)
+		if constexpr (kUseSBO)
 		{
-			mContainerItems.emplace(resourceId, Container{ capacity });
+			std::construct_at(&mArray);
+		}
+		else
+		{
+			std::construct_at(&mMap);
+		}
 
-			if (containerStates.contains(resourceId))
+		ResetState();
+		Transfer::Exchange(other, *this);
+	}
+
+	template<typename Model>
+	inline Package<Model>& Package<Model>::operator=(Package& other) noexcept
+	{
+		Transfer::Exchange(other, *this);
+
+		return *this;
+	}
+
+	template<typename Model>
+	inline Package<Model>::Package(Package&& other) noexcept
+		: mContainerProperties{ other.mContainerProperties }
+	{
+		if constexpr (kUseSBO)
+		{
+			std::construct_at(&mArray);
+		}
+		else
+		{
+			std::construct_at(&mMap);
+		}
+
+		if constexpr (Model::kCheckResourceFlow)
+		{
+			for (const auto& [resourceId, capacity] : mContainerProperties)
 			{
-				mContainerItems.at(resourceId).SetAmount(containerStates.at(resourceId));
+				assert(capacity > Model::kZeroUnits, "Capacity must be greater than zero.");
+				assert(capacity <= Model::kMaxCapacity, "Capacity must be less than or equal to maximum capacity.");
+			}
+		}
+
+		ResetState();
+		Transfer::Exchange(other, *this);
+	}
+
+	template<typename Model>
+	inline Package<Model>& Package<Model>::operator=(Package&& other) noexcept
+	{
+		Transfer::Exchange(other, *this);
+
+		return *this;
+	}
+
+	template<typename Model>
+	inline Package<Model>::~Package()
+	{
+		if constexpr (kUseSBO)
+		{
+			std::destroy_at(&mArray);
+		}
+		else
+		{
+			std::destroy_at(&mMap);
+		}
+
+		if constexpr (Model::kCheckResourceFlow)
+		{
+			bool check = Model::kCheckResourceFlow;
+			std::cout << check;
+			for (auto& [resourceId, _] : mContainerProperties)
+			{
+				Units amount = AccessResource(resourceId);
+				assert(amount == Model::kZeroUnits, "Resource wasn't utilized.");
 			}
 		}
 	}
 
-	template<typename ResourceModel>
-	inline void Package<ResourceModel>::SaveState(Package<ResourceModel>::ContainerStateTable& containerStates) const
+	template<typename Model>
+	inline void Package<Model>::LoadState(const Package<Model>::ResourceTable& containerStates)
 	{
-		for (const auto& [resourceId, container] : mContainerItems)
+		ResetState();
+
+		// Load new state.
+		for (auto& [resourceId, capacity] : mContainerProperties)
 		{
-			containerStates[resourceId] = container.GetAmount();
+			Units& amount = AccessResource(resourceId);
+			amount = std::min(amount, capacity);
+
+			auto stateIter = containerStates.find(resourceId);
+			if (stateIter != containerStates.cend())
+			{
+				amount = std::min(stateIter->second, capacity);
+			}
 		}
 	}
 
-	template<typename ResourceModel>
-	inline void Package<ResourceModel>::ResetState()
+	template<typename Model>
+	inline void Package<Model>::SaveState(Package<Model>::ResourceTable& containerStates) const
 	{
-		mContainerItems.clear();
-		for (auto& [resourceId, properties] : mContainerProperties)
+		for (auto [resourceId, _] : mContainerProperties)
 		{
-			mContainerItems.emplace(resourceId, Container{ properties });
+			containerStates.emplace(resourceId, AccessResource(resourceId));
 		}
 	}
 
-	template<typename ResourceModel>
-	inline std::vector<typename Package<ResourceModel>::ResourceId> Package<ResourceModel>::GetManagedResourceIds() const
+	template<typename Model>
+	inline void Package<Model>::ResetState()
+	{
+		if constexpr (kUseSBO)
+		{
+			mArray.fill(Model::kZeroUnits);
+		}
+		else
+		{
+			mMap.clear();
+		}
+	}
+
+	template<typename Model>
+	inline Package<Model>::Units Package<Model>::GetRequestedUnits(ResourceId resourceId) const
+	{
+		auto iterProperties = mContainerProperties.find(resourceId);
+		if (iterProperties == mContainerProperties.end())
+		{
+			return Model::kZeroUnits;
+		}
+
+		const Units capacity = iterProperties->second;
+		const Units amount = AccessResource(resourceId);
+
+		return capacity - amount;
+	}
+
+	template<typename Model>
+	inline Package<Model>::Units Package<Model>::GetAvailableUnits(ResourceId resourceId) const
+	{
+		auto iterProperties = mContainerProperties.find(resourceId);
+		if (iterProperties == mContainerProperties.end())
+		{
+			return Model::kZeroUnits;
+		}
+
+		return AccessResource(resourceId);
+	}
+
+	template<typename Model>
+	inline std::vector<typename Package<Model>::ResourceId> Package<Model>::GetManagedResourceIds() const
 	{
 		std::vector<ResourceId> result;
+		result.reserve(mContainerProperties.size());
 
 		std::transform(
-			mContainerItems.cbegin(),
-			mContainerItems.cend(),
+			mContainerProperties.cbegin(),
+			mContainerProperties.cend(),
 			std::back_inserter(result),
-			[](const std::pair<ResourceId, Container>& pair) -> ResourceId {
+			[](const auto& pair) -> ResourceId {
 				return pair.first;
 			}
 		);
@@ -112,29 +305,60 @@ namespace Vessel
 		return result;
 	}
 
-	template<typename ResourceModel>
-	inline Package<ResourceModel>::Container& Package<ResourceModel>::GetContainer(ResourceId resourceId)
+	template<typename Model>
+	inline Package<Model>::Units& Package<Model>::AccessResource(ResourceId id)
 	{
-		static Container kEmptyItem{ kZeroUnits };
-
-		if (!mContainerItems.contains(resourceId))
+		if constexpr (kUseSBO)
 		{
-			return kEmptyItem;
+			return mArray[static_cast<size_t>(id)];
 		}
-
-		return mContainerItems.at(resourceId);
+		else
+		{
+			return mMap[id];
+		}
 	}
 
-	template<typename ResourceModel>
-	inline const Package<ResourceModel>::Container& Package<ResourceModel>::GetContainer(ResourceId resourceId) const
+	template<typename Model>
+	inline Package<Model>::Units Package<Model>::AccessResource(ResourceId id) const
 	{
-		static Container kEmptyItem{ kZeroUnits };
-
-		if (!mContainerItems.contains(resourceId))
+		if constexpr (kUseSBO)
 		{
-			return kEmptyItem;
+			return mArray[static_cast<size_t>(id)];
+		}
+		else
+		{
+			auto iter = mMap.find(id);
+			if (iter == mMap.cend())
+			{
+				return Model::kZeroUnits;
+			}
+
+			return iter->second;
+		}
+	}
+
+	template<typename Model>
+	inline void Package<Model>::IncreaseUnits(ResourceId resourceId, Units amount)
+	{
+		auto iterProperties = mContainerProperties.find(resourceId);
+		if (iterProperties == mContainerProperties.end())
+		{
+			return;
 		}
 
-		return mContainerItems.at(resourceId);
+		Units& currentAmount = AccessResource(resourceId);
+		currentAmount = std::min(currentAmount + amount, iterProperties->second);
+	}
+
+	template<typename Model>
+	inline void Package<Model>::DecreaseUnits(ResourceId resourceId, Units amount)
+	{
+		if (!mContainerProperties.contains(resourceId))
+		{
+			return;
+		}
+
+		Units& currentAmount = AccessResource(resourceId);
+		currentAmount = std::max(currentAmount - amount, Model::kZeroUnits);
 	}
 } // Vessel

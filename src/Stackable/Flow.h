@@ -3,12 +3,9 @@
 
 #include "ResourceModel.h"
 
-#include "Provider.h"
-#include "Consumer.h"
-
 namespace Vessel
 {
-	enum class ExchangeResult : bool
+	enum class Transferesult : bool
 	{
 		Unchanged = false,
 		Changed = true,
@@ -31,7 +28,7 @@ namespace Vessel
 		// Public static interface.
 	public:
 		// Supply the consumer requested needs from the provider.
-		static ExchangeResult Exchange(Provider<ResourceModel>& provider, Consumer<ResourceModel>& consumer);
+		static Transferesult Transfer(Provider<ResourceModel>& provider, Consumer<ResourceModel>& consumer);
 
 		// Private friend.
 	private:
@@ -52,13 +49,13 @@ namespace Vessel
 	};
 
 	template<typename ResourceModel>
-	inline ExchangeResult Vessel<ResourceModel>::Exchange(Provider<ResourceModel>& provider, Consumer<ResourceModel>& consumer)
+	inline Transferesult Vessel<ResourceModel>::Transfer(Provider<ResourceModel>& provider, Consumer<ResourceModel>& consumer)
 	{
 		constexpr Units kEpsilonUnits = std::numeric_limits<Units>::epsilon();
 
 		if (provider.GetProvidableId() != consumer.GetConsumableId())
 		{
-			return ExchangeResult::Unchanged;
+			return Transferesult::Unchanged;
 		}
 
 		const Units demandUnits = consumer.GetRequestUnits();
@@ -67,13 +64,13 @@ namespace Vessel
 		const Units compromise = std::clamp(demandUnits, kZeroUnits, supplyUnits);
 		if (compromise < kEpsilonUnits)
 		{
-			return ExchangeResult::Unchanged;
+			return Transferesult::Unchanged;
 		}
 
 		consumer.IncreaseUnits(compromise);
 		provider.ReduceUnits(compromise);
 
-		return ExchangeResult::Changed;
+		return Transferesult::Changed;
 	}
 
 	template<typename ResourceModel>
@@ -91,7 +88,7 @@ namespace Vessel
 	template<typename ResourceModel>
 	Consumer<ResourceModel>& operator<<(Consumer<ResourceModel>& consumer, Provider<ResourceModel>& provider)
 	{
-		Vessel<ResourceModel>::Exchange(provider, consumer);
+		Vessel<ResourceModel>::Transfer(provider, consumer);
 
 		return consumer;
 	}
@@ -99,7 +96,7 @@ namespace Vessel
 	template<typename ResourceModel>
 	Provider<ResourceModel>& operator>>(Provider<ResourceModel>& provider, Consumer<ResourceModel>& consumer)
 	{
-		Vessel<ResourceModel>::Exchange(provider, consumer);
+		Vessel<ResourceModel>::Transfer(provider, consumer);
 
 		return provider;
 	}
